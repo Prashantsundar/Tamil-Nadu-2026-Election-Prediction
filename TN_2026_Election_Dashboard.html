@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TN 2026 Assembly Election Projections</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --dmk: #E8293C;
+    --dmk-light: rgba(232,41,60,0.15);
+    --aiadmk: #1A8A4C;
+    --aiadmk-light: rgba(26,138,76,0.15);
+    --tvk: #F59E0B;
+    --marginal: #F97316;
+    --bg: #0A0C10;
+    --surface: #111318;
+    --surface2: #181C24;
+    --border: rgba(255,255,255,0.07);
+    --text: #E8EAF0;
+    --muted: #6B7280;
+    --accent: #4F8EF7;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0D0F14 0%, #131720 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--dmk), var(--aiadmk), var(--tvk));
+  }
+  header::after {
+    content: 'தமிழ்நாடு';
+    position: absolute;
+    right: 40px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 52px;
+    opacity: 0.04;
+    font-weight: 900;
+    letter-spacing: 2px;
+  }
+  .header-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--dmk);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 44px;
+    letter-spacing: 2px;
+    line-height: 1;
+    background: linear-gradient(90deg, #fff 60%, #aab);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-sub {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  /* LAYOUT */
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 32px 48px;
+  }
+
+  /* KPI ROW */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-card .bar {
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    border-radius: 12px 12px 0 0;
+  }
+  .kpi-card.total .bar { background: var(--accent); }
+  .kpi-card.dmk .bar { background: var(--dmk); }
+  .kpi-card.aiadmk .bar { background: var(--aiadmk); }
+  .kpi-card.marginal .bar { background: var(--marginal); }
+  .kpi-card.others .bar { background: var(--tvk); }
+  .kpi-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    line-height: 1;
+    letter-spacing: 1px;
+  }
+  .kpi-card.total .kpi-value { color: var(--accent); }
+  .kpi-card.dmk .kpi-value { color: var(--dmk); }
+  .kpi-card.aiadmk .kpi-value { color: var(--aiadmk); }
+  .kpi-card.marginal .kpi-value { color: var(--marginal); }
+  .kpi-card.others .kpi-value { color: var(--tvk); }
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* CHART GRID */
+  .chart-row {
+    display: grid;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .chart-row.cols-3-1 { grid-template-columns: 3fr 2fr; }
+  .chart-row.cols-2   { grid-template-columns: 1fr 1fr; }
+  .chart-row.cols-1   { grid-template-columns: 1fr; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .card-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  .card-title span {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* SEAT METER */
+  .seat-meter {
+    margin: 12px 0 24px;
+  }
+  .meter-track {
+    height: 32px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    background: var(--surface2);
+  }
+  .meter-dmk { background: var(--dmk); display: flex; align-items: center; justify-content: center; }
+  .meter-aiadmk { background: var(--aiadmk); display: flex; align-items: center; justify-content: center; }
+  .meter-others { background: var(--tvk); display: flex; align-items: center; justify-content: center; }
+  .meter-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+  }
+  .meter-legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .legend-item strong { color: var(--text); }
+  .majority-line {
+    position: relative;
+    margin-top: 6px;
+    height: 16px;
+  }
+  .majority-marker {
+    position: absolute;
+    width: 2px;
+    height: 10px;
+    background: rgba(255,255,255,0.4);
+    top: 0;
+  }
+  .majority-text {
+    position: absolute;
+    font-size: 10px;
+    color: var(--muted);
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  /* TABLE */
+  .table-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .search-box {
+    flex: 1;
+    min-width: 200px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--muted); }
+  .filter-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+    outline: none;
+  }
+  .filter-select option { background: #1a1d26; }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table thead th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .data-table thead th:hover { color: var(--text); }
+  .data-table thead th.sorted { color: var(--accent); }
+  .data-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+  .data-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+  .data-table tbody td {
+    padding: 10px 12px;
+    color: var(--text);
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge-dmk { background: var(--dmk-light); color: var(--dmk); }
+  .badge-aiadmk { background: var(--aiadmk-light); color: var(--aiadmk); }
+  .badge-others { background: rgba(245,158,11,0.15); color: var(--tvk); }
+  .badge-safe-dmk { background: var(--dmk-light); color: #ff6b7a; }
+  .badge-safe-aiadmk { background: var(--aiadmk-light); color: #4cbe7c; }
+  .badge-marginal { background: rgba(249,115,22,0.15); color: var(--marginal); }
+
+  .prob-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .prob-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 60px;
+  }
+  .prob-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+  .prob-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .table-info {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .page-btns {
+    display: flex;
+    gap: 6px;
+  }
+  .page-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    transition: background 0.15s;
+  }
+  .page-btn:hover { background: rgba(79,142,247,0.15); border-color: var(--accent); }
+  .page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .page-btn:disabled { opacity: 0.4; cursor: default; }
+
+  canvas { max-height: 280px; }
+
+  .win-indicator {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 5px;
+  }
+
+  /* CHART SECTION TITLE */
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.5);
+    margin: 28px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 20px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  @media (max-width: 1024px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .chart-row.cols-3-1 { grid-template-columns: 1fr; }
+    .chart-row.cols-2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .container { padding: 16px; }
+    header { padding: 20px 16px; }
+    header h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">Statistical Projection Model</div>
+  <h1>Tamil Nadu 2026 Assembly Elections</h1>
+  <div class="header-sub">234 Constituencies · Logistic Regression Win Probability · Vote Share Adjustments for TVK Entry</div>
+</header>
+
+<div class="container">
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card total">
+      <div class="bar"></div>
+      <div class="kpi-label">Total Seats</div>
+      <div class="kpi-value">234</div>
+      <div class="kpi-sub">Tamil Nadu Assembly</div>
+    </div>
+    <div class="kpi-card dmk">
+      <div class="bar"></div>
+      <div class="kpi-label">DMK Alliance Projected</div>
+      <div class="kpi-value">174</div>
+      <div class="kpi-sub">74.4% · Majority: 118</div>
+    </div>
+    <div class="kpi-card aiadmk">
+      <div class="bar"></div>
+      <div class="kpi-label">AIADMK Alliance</div>
+      <div class="kpi-value">58</div>
+      <div class="kpi-sub">24.8% of seats</div>
+    </div>
+    <div class="kpi-card marginal">
+      <div class="bar"></div>
+      <div class="kpi-label">Marginal Seats</div>
+      <div class="kpi-value">8</div>
+      <div class="kpi-sub">Win prob 40–60%</div>
+    </div>
+    <div class="kpi-card others">
+      <div class="bar"></div>
+      <div class="kpi-label">Others / Undecided</div>
+      <div class="kpi-value">2</div>
+      <div class="kpi-sub">BJP, etc.</div>
+    </div>
+  </div>
+
+  <!-- SEAT METER -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title">Seat Projection Meter <span>Alliance-wise Distribution of 234 Assembly Seats</span></div>
+    <div class="seat-meter">
+      <div class="meter-track">
+        <div class="meter-dmk" style="width:74.4%"><span class="meter-label">DMK Alliance — 174</span></div>
+        <div class="meter-aiadmk" style="width:24.8%"><span class="meter-label">AIADMK — 58</span></div>
+        <div class="meter-others" style="width:0.8%"></div>
+      </div>
+      <div style="position:relative;height:18px;margin-top:4px;">
+        <div style="position:absolute;left:50%;width:2px;height:12px;background:rgba(255,255,255,0.35);top:0;transform:translateX(-50%)"></div>
+        <div style="position:absolute;left:50%;transform:translateX(-50%);top:2px;font-size:10px;color:var(--muted);white-space:nowrap;">Majority: 118 seats (50%+1)</div>
+      </div>
+    </div>
+    <div class="meter-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--dmk)"></div> DMK Alliance: <strong>174 seats (74.4%)</strong></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--aiadmk)"></div> AIADMK Alliance: <strong>58 seats (24.8%)</strong></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--tvk)"></div> Others: <strong>2 seats (0.8%)</strong></div>
+    </div>
+  </div>
+
+  <div class="section-title">Charts & Analysis</div>
+
+  <!-- CHART ROW 1 -->
+  <div class="chart-row cols-3-1">
+    <div class="card">
+      <div class="card-title">Party-wise Seat Count <span>Projected Winner by Party (All 234 Seats)</span></div>
+      <canvas id="partyChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Seat Risk Category <span>Safety Classification</span></div>
+      <canvas id="riskChart"></canvas>
+    </div>
+  </div>
+
+  <!-- CHART ROW 2 -->
+  <div class="chart-row cols-2">
+    <div class="card">
+      <div class="card-title">Win Probability Distribution <span>LR Model — DMK Win Probability Across Constituencies</span></div>
+      <canvas id="probChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Average Vote Share Comparison <span>Adjusted Shares (DMK, AIADMK, TVK, Others)</span></div>
+      <canvas id="shareChart"></canvas>
+    </div>
+  </div>
+
+  <!-- CHART ROW 3 -->
+  <div class="chart-row cols-2">
+    <div class="card">
+      <div class="card-title">Elector Growth vs Win Probability <span>New Voter Impact on DMK Prospects</span></div>
+      <canvas id="scatterChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">TVK Vote Share Impact <span>TVK Share vs DMK Win Probability (Marginal Seats)</span></div>
+      <canvas id="tvkChart"></canvas>
+    </div>
+  </div>
+
+  <div class="section-title">Constituency Explorer</div>
+
+  <!-- TABLE -->
+  <div class="card">
+    <div class="table-controls">
+      <input class="search-box" id="searchBox" type="text" placeholder="🔍  Search constituency…" />
+      <select class="filter-select" id="filterAlliance">
+        <option value="">All Alliances</option>
+        <option value="DMK_Alliance">DMK Alliance</option>
+        <option value="AIADMK_Alliance">AIADMK Alliance</option>
+        <option value="Others">Others</option>
+      </select>
+      <select class="filter-select" id="filterRisk">
+        <option value="">All Risk Levels</option>
+        <option value="DMK Safe">DMK Safe</option>
+        <option value="AIADMK Safe">AIADMK Safe</option>
+        <option value="Marginal">Marginal</option>
+      </select>
+      <select class="filter-select" id="filterParty">
+        <option value="">All Parties</option>
+        <option value="DMK">DMK</option>
+        <option value="AIADMK">AIADMK</option>
+        <option value="INC">INC</option>
+        <option value="PMK">PMK</option>
+        <option value="VCK">VCK</option>
+        <option value="BJP">BJP</option>
+        <option value="CPI-M">CPI-M</option>
+        <option value="CPI">CPI</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th data-col="Constituency">Constituency ↕</th>
+          <th data-col="Winner_Party">Party ↕</th>
+          <th data-col="Winner_adj">Projected Alliance ↕</th>
+          <th data-col="Seat_Risk">Risk ↕</th>
+          <th data-col="LR_DMK_WinProb">DMK Win Prob ↕</th>
+          <th data-col="DMK_share_adj">DMK Share ↕</th>
+          <th data-col="AIADMK_share_adj">AIADMK Share ↕</th>
+          <th data-col="TVK_share_adj">TVK Share ↕</th>
+          <th data-col="Electors_2026">Electors ↕</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    </div>
+    <div class="table-footer">
+      <div class="table-info" id="tableInfo">Loading…</div>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const DATA = [{"Constituency":"Alandur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":296052,"New_Voters":0,"Elector_Growth":0.9065,"DMK_Alliance_Share":0.4912,"AIADMK_Alliance_Share":0.3206,"NTK_share":0.0694,"DMK_share_adj":0.4743,"AIADMK_share_adj":0.2374,"TVK_share_adj":0.2142,"Others_share_adj":0.0741,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9989,"Seat_Risk":"DMK Safe"},{"Constituency":"Alangudi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":210296,"New_Voters":0,"Elector_Growth":0.8909,"DMK_Alliance_Share":0.5117,"AIADMK_Alliance_Share":0.3613,"NTK_share":0.0901,"DMK_share_adj":0.5338,"AIADMK_share_adj":0.3447,"TVK_share_adj":0.0997,"Others_share_adj":0.0218,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9994,"Seat_Risk":"DMK Safe"},{"Constituency":"Alangulam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":253408,"New_Voters":0,"Elector_Growth":0.9066,"DMK_Alliance_Share":0.347,"AIADMK_Alliance_Share":0.3783,"NTK_share":0.0615,"DMK_share_adj":0.3191,"AIADMK_share_adj":0.3018,"TVK_share_adj":0.2026,"Others_share_adj":0.1765,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.2148,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Ambasamudram","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":225714,"New_Voters":0,"Elector_Growth":0.9248,"DMK_Alliance_Share":0.3844,"AIADMK_Alliance_Share":0.4796,"NTK_share":0.0773,"DMK_share_adj":0.3652,"AIADMK_share_adj":0.4192,"TVK_share_adj":0.194,"Others_share_adj":0.0215,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.071,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Ambattur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":330480,"New_Voters":399,"Elector_Growth":1.0012,"DMK_Alliance_Share":0.4767,"AIADMK_Alliance_Share":0.3013,"NTK_share":0.0945,"DMK_share_adj":0.4902,"AIADMK_share_adj":0.2605,"TVK_share_adj":0.1446,"Others_share_adj":0.1047,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9994,"Seat_Risk":"DMK Safe"},{"Constituency":"Ambur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":212631,"New_Voters":0,"Elector_Growth":0.8702,"DMK_Alliance_Share":0.5086,"AIADMK_Alliance_Share":0.3949,"NTK_share":0.0571,"DMK_share_adj":0.517,"AIADMK_share_adj":0.3747,"TVK_share_adj":0.0872,"Others_share_adj":0.0212,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9948,"Seat_Risk":"DMK Safe"},{"Constituency":"Anaikattu","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":234738,"New_Voters":0,"Elector_Growth":0.8639,"DMK_Alliance_Share":0.4811,"AIADMK_Alliance_Share":0.4489,"NTK_share":0.0411,"DMK_share_adj":0.4479,"AIADMK_share_adj":0.3766,"TVK_share_adj":0.1553,"Others_share_adj":0.0202,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8368,"Seat_Risk":"DMK Safe"},{"Constituency":"Andipatti","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":254549,"New_Voters":0,"Elector_Growth":0.8844,"DMK_Alliance_Share":0.4464,"AIADMK_Alliance_Share":0.4057,"NTK_share":0.0535,"DMK_share_adj":0.4325,"AIADMK_share_adj":0.3503,"TVK_share_adj":0.1566,"Others_share_adj":0.0606,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8614,"Seat_Risk":"DMK Safe"},{"Constituency":"Anna Nagar","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":181402,"New_Voters":0,"Elector_Growth":0.7999,"DMK_Alliance_Share":0.4849,"AIADMK_Alliance_Share":0.3187,"NTK_share":0.063,"DMK_share_adj":0.4871,"AIADMK_share_adj":0.2793,"TVK_share_adj":0.1216,"Others_share_adj":0.112,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9992,"Seat_Risk":"DMK Safe"},{"Constituency":"Anthiyur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":205737,"New_Voters":0,"Elector_Growth":0.8491,"DMK_Alliance_Share":0.4484,"AIADMK_Alliance_Share":0.4412,"NTK_share":0.0467,"DMK_share_adj":0.4452,"AIADMK_share_adj":0.4125,"TVK_share_adj":0.1006,"Others_share_adj":0.0417,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.6894,"Seat_Risk":"DMK Safe"},{"Constituency":"Arakkonam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":199165,"New_Voters":0,"Elector_Growth":0.8459,"DMK_Alliance_Share":0.3397,"AIADMK_Alliance_Share":0.4982,"NTK_share":0.0854,"DMK_share_adj":0.3274,"AIADMK_share_adj":0.4567,"TVK_share_adj":0.1761,"Others_share_adj":0.0399,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0074,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Arani","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":253022,"New_Voters":0,"Elector_Growth":0.8319,"DMK_Alliance_Share":0.4509,"AIADMK_Alliance_Share":0.4734,"NTK_share":0.0474,"DMK_share_adj":0.4064,"AIADMK_share_adj":0.3809,"TVK_share_adj":0.1925,"Others_share_adj":0.0202,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.3628,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Aranthangi","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":227588,"New_Voters":0,"Elector_Growth":0.9859,"DMK_Alliance_Share":0.487,"AIADMK_Alliance_Share":0.3031,"NTK_share":0.1098,"DMK_share_adj":0.5059,"AIADMK_share_adj":0.2583,"TVK_share_adj":0.1645,"Others_share_adj":0.0712,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9999,"Seat_Risk":"DMK Safe"},{"Constituency":"Aravakurichi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":194505,"New_Voters":0,"Elector_Growth":0.7995,"DMK_Alliance_Share":0.5272,"AIADMK_Alliance_Share":0.3871,"NTK_share":0.0406,"DMK_share_adj":0.497,"AIADMK_share_adj":0.3104,"TVK_share_adj":0.1721,"Others_share_adj":0.0205,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9973,"Seat_Risk":"DMK Safe"},{"Constituency":"Arcot","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":243565,"New_Voters":0,"Elector_Growth":0.8452,"DMK_Alliance_Share":0.4952,"AIADMK_Alliance_Share":0.4001,"NTK_share":0.0576,"DMK_share_adj":0.4717,"AIADMK_share_adj":0.3274,"TVK_share_adj":0.1801,"Others_share_adj":0.0209,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9857,"Seat_Risk":"DMK Safe"},{"Constituency":"Ariyalur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":261161,"New_Voters":0,"Elector_Growth":0.8442,"DMK_Alliance_Share":0.4616,"AIADMK_Alliance_Share":0.4473,"NTK_share":0.0548,"DMK_share_adj":0.4461,"AIADMK_share_adj":0.3972,"TVK_share_adj":0.1359,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7219,"Seat_Risk":"DMK Safe"},{"Constituency":"Aruppukkottai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":206497,"New_Voters":0,"Elector_Growth":0.8781,"DMK_Alliance_Share":0.5318,"AIADMK_Alliance_Share":0.3186,"NTK_share":0.0724,"DMK_share_adj":0.5341,"AIADMK_share_adj":0.2651,"TVK_share_adj":0.1566,"Others_share_adj":0.0442,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9999,"Seat_Risk":"DMK Safe"},{"Constituency":"Athoor","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":259846,"New_Voters":0,"Elector_Growth":0.8227,"DMK_Alliance_Share":0.7211,"AIADMK_Alliance_Share":0.1315,"NTK_share":0.0747,"DMK_share_adj":0.7453,"AIADMK_share_adj":0.0741,"TVK_share_adj":0.136,"Others_share_adj":0.0446,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Attur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":226481,"New_Voters":0,"Elector_Growth":0.8255,"DMK_Alliance_Share":0.4358,"AIADMK_Alliance_Share":0.4772,"NTK_share":0.0512,"DMK_share_adj":0.4002,"AIADMK_share_adj":0.3969,"TVK_share_adj":0.1824,"Others_share_adj":0.0205,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.2549,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Avadi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":428772,"New_Voters":15411,"Elector_Growth":1.0373,"DMK_Alliance_Share":0.4994,"AIADMK_Alliance_Share":0.3221,"NTK_share":0.1,"DMK_share_adj":0.4896,"AIADMK_share_adj":0.2328,"TVK_share_adj":0.2479,"Others_share_adj":0.0297,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9994,"Seat_Risk":"DMK Safe"},{"Constituency":"Avanashi","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":250346,"New_Voters":0,"Elector_Growth":0.8571,"DMK_Alliance_Share":0.3122,"AIADMK_Alliance_Share":0.5637,"NTK_share":0.0623,"DMK_share_adj":0.2927,"AIADMK_share_adj":0.5208,"TVK_share_adj":0.1608,"Others_share_adj":0.0256,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0001,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Bargur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":237349,"New_Voters":0,"Elector_Growth":0.8736,"DMK_Alliance_Share":0.4917,"AIADMK_Alliance_Share":0.428,"NTK_share":0.0511,"DMK_share_adj":0.4751,"AIADMK_share_adj":0.3778,"TVK_share_adj":0.1265,"Others_share_adj":0.0206,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9554,"Seat_Risk":"DMK Safe"},{"Constituency":"Bhavani","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":221393,"New_Voters":0,"Elector_Growth":0.8003,"DMK_Alliance_Share":0.3893,"AIADMK_Alliance_Share":0.5011,"NTK_share":0.052,"DMK_share_adj":0.3572,"AIADMK_share_adj":0.4247,"TVK_share_adj":0.1972,"Others_share_adj":0.0209,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0196,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Bhavanisagar","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":235584,"New_Voters":0,"Elector_Growth":0.8551,"DMK_Alliance_Share":0.4147,"AIADMK_Alliance_Share":0.5055,"NTK_share":0.0425,"DMK_share_adj":0.3884,"AIADMK_share_adj":0.4449,"TVK_share_adj":0.1462,"Others_share_adj":0.0205,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0398,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Bhuvanagiri","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":230968,"New_Voters":0,"Elector_Growth":0.8528,"DMK_Alliance_Share":0.4473,"AIADMK_Alliance_Share":0.4892,"NTK_share":0.0353,"DMK_share_adj":0.4198,"AIADMK_share_adj":0.4296,"TVK_share_adj":0.1303,"Others_share_adj":0.0202,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.2051,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Bodinayakanur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":261631,"New_Voters":0,"Elector_Growth":0.8867,"DMK_Alliance_Share":0.4145,"AIADMK_Alliance_Share":0.4658,"NTK_share":0.0517,"DMK_share_adj":0.3972,"AIADMK_share_adj":0.4115,"TVK_share_adj":0.1595,"Others_share_adj":0.0318,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.152,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Chengalpattu","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":366400,"New_Voters":0,"Elector_Growth":0.9732,"DMK_Alliance_Share":0.4764,"AIADMK_Alliance_Share":0.3791,"NTK_share":0.098,"DMK_share_adj":0.4427,"AIADMK_share_adj":0.2731,"TVK_share_adj":0.2628,"Others_share_adj":0.0213,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9899,"Seat_Risk":"DMK Safe"},{"Constituency":"Chengam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":266629,"New_Voters":0,"Elector_Growth":0.8667,"DMK_Alliance_Share":0.4826,"AIADMK_Alliance_Share":0.4433,"NTK_share":0.0539,"DMK_share_adj":0.4405,"AIADMK_share_adj":0.3547,"TVK_share_adj":0.1847,"Others_share_adj":0.0202,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8797,"Seat_Risk":"DMK Safe"},{"Constituency":"Chepauk-Thiruvallikeni","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":163866,"New_Voters":0,"Elector_Growth":0.8682,"DMK_Alliance_Share":0.6789,"AIADMK_Alliance_Share":0.1742,"NTK_share":0.0669,"DMK_share_adj":0.6954,"AIADMK_share_adj":0.1223,"TVK_share_adj":0.1287,"Others_share_adj":0.0536,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Cheyyar","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":238283,"New_Voters":0,"Elector_Growth":0.8089,"DMK_Alliance_Share":0.4778,"AIADMK_Alliance_Share":0.4205,"NTK_share":0.0568,"DMK_share_adj":0.4538,"AIADMK_share_adj":0.3506,"TVK_share_adj":0.1748,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9378,"Seat_Risk":"DMK Safe"},{"Constituency":"Cheyyur","Winner_Party":"VCK","Winner_Alliance":"DMK_Alliance","Electors_2026":202055,"New_Voters":0,"Elector_Growth":0.8212,"DMK_Alliance_Share":0.462,"AIADMK_Alliance_Share":0.4565,"NTK_share":0.0539,"DMK_share_adj":0.412,"AIADMK_share_adj":0.3527,"TVK_share_adj":0.2151,"Others_share_adj":0.0202,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7334,"Seat_Risk":"DMK Safe"},{"Constituency":"Chidambaram","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":229136,"New_Voters":0,"Elector_Growth":0.9098,"DMK_Alliance_Share":0.4092,"AIADMK_Alliance_Share":0.5016,"NTK_share":0.0495,"DMK_share_adj":0.3916,"AIADMK_share_adj":0.4541,"TVK_share_adj":0.1335,"Others_share_adj":0.0208,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0485,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Coimbatore (North)","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":291533,"New_Voters":12963,"Elector_Growth":1.0465,"DMK_Alliance_Share":0.3819,"AIADMK_Alliance_Share":0.4016,"NTK_share":0.0564,"DMK_share_adj":0.3631,"AIADMK_share_adj":0.3328,"TVK_share_adj":0.1769,"Others_share_adj":0.1273,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.33,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Coimbatore (South)","Winner_Party":"BJP","Winner_Alliance":"AIADMK_Alliance","Electors_2026":186509,"New_Voters":0,"Elector_Growth":0.8773,"DMK_Alliance_Share":0.2739,"AIADMK_Alliance_Share":0.3438,"NTK_share":0.0278,"DMK_share_adj":0.2597,"AIADMK_share_adj":0.3098,"TVK_share_adj":0.0878,"Others_share_adj":0.3428,"Winner_adj":"Others","LR_DMK_WinProb":0.0242,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Colachal","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":263448,"New_Voters":12117,"Elector_Growth":1.0482,"DMK_Alliance_Share":0.4956,"AIADMK_Alliance_Share":0.3672,"NTK_share":0.0995,"DMK_share_adj":0.4775,"AIADMK_share_adj":0.2877,"TVK_share_adj":0.2074,"Others_share_adj":0.0273,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9987,"Seat_Risk":"DMK Safe"},{"Constituency":"Coonoor","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":175820,"New_Voters":0,"Elector_Growth":0.9418,"DMK_Alliance_Share":0.4549,"AIADMK_Alliance_Share":0.4247,"NTK_share":0.0534,"DMK_share_adj":0.4392,"AIADMK_share_adj":0.3661,"TVK_share_adj":0.1651,"Others_share_adj":0.0296,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8952,"Seat_Risk":"DMK Safe"},{"Constituency":"Cuddalore","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":221152,"New_Voters":0,"Elector_Growth":0.8846,"DMK_Alliance_Share":0.4646,"AIADMK_Alliance_Share":0.4446,"NTK_share":0.0525,"DMK_share_adj":0.4474,"AIADMK_share_adj":0.3914,"TVK_share_adj":0.1404,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8147,"Seat_Risk":"DMK Safe"},{"Constituency":"Cumbum","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":253646,"New_Voters":0,"Elector_Growth":0.9129,"DMK_Alliance_Share":0.5181,"AIADMK_Alliance_Share":0.3084,"NTK_share":0.061,"DMK_share_adj":0.5181,"AIADMK_share_adj":0.261,"TVK_share_adj":0.1349,"Others_share_adj":0.086,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9998,"Seat_Risk":"DMK Safe"},{"Constituency":"Dharapuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":220743,"New_Voters":0,"Elector_Growth":0.8284,"DMK_Alliance_Share":0.4639,"AIADMK_Alliance_Share":0.4567,"NTK_share":0.0348,"DMK_share_adj":0.4521,"AIADMK_share_adj":0.4171,"TVK_share_adj":0.1101,"Others_share_adj":0.0207,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.6224,"Seat_Risk":"DMK Safe"},{"Constituency":"Dharmapuri","Winner_Party":"PMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":257939,"New_Voters":0,"Elector_Growth":0.864,"DMK_Alliance_Share":0.3624,"AIADMK_Alliance_Share":0.486,"NTK_share":0.04,"DMK_share_adj":0.3283,"AIADMK_share_adj":0.4078,"TVK_share_adj":0.1969,"Others_share_adj":0.0669,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0068,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Dindigul","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":237679,"New_Voters":0,"Elector_Growth":0.8868,"DMK_Alliance_Share":0.3734,"AIADMK_Alliance_Share":0.4643,"NTK_share":0.0762,"DMK_share_adj":0.3554,"AIADMK_share_adj":0.4052,"TVK_share_adj":0.1948,"Others_share_adj":0.0446,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0632,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Dr.Radhakrishnan Nagar","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":195856,"New_Voters":0,"Elector_Growth":0.7624,"DMK_Alliance_Share":0.512,"AIADMK_Alliance_Share":0.2849,"NTK_share":0.1093,"DMK_share_adj":0.534,"AIADMK_share_adj":0.2382,"TVK_share_adj":0.1634,"Others_share_adj":0.0645,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Edappadi","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":274054,"New_Voters":0,"Elector_Growth":0.8068,"DMK_Alliance_Share":0.2804,"AIADMK_Alliance_Share":0.6597,"NTK_share":0.0268,"DMK_share_adj":0.2446,"AIADMK_share_adj":0.5883,"TVK_share_adj":0.147,"Others_share_adj":0.0201,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Egmore","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":134879,"New_Voters":0,"Elector_Growth":0.8233,"DMK_Alliance_Share":0.5771,"AIADMK_Alliance_Share":0.2629,"NTK_share":0.0526,"DMK_share_adj":0.583,"AIADMK_share_adj":0.2251,"TVK_share_adj":0.1048,"Others_share_adj":0.0871,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Erode (East)","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":176228,"New_Voters":0,"Elector_Growth":0.8438,"DMK_Alliance_Share":0.4427,"AIADMK_Alliance_Share":0.3841,"NTK_share":0.0765,"DMK_share_adj":0.4479,"AIADMK_share_adj":0.3531,"TVK_share_adj":0.1256,"Others_share_adj":0.0734,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.969,"Seat_Risk":"DMK Safe"},{"Constituency":"Erode (West)","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":245493,"New_Voters":0,"Elector_Growth":0.8693,"DMK_Alliance_Share":0.4901,"AIADMK_Alliance_Share":0.3827,"NTK_share":0.065,"DMK_share_adj":0.4803,"AIADMK_share_adj":0.3216,"TVK_share_adj":0.1753,"Others_share_adj":0.0228,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.992,"Seat_Risk":"DMK Safe"},{"Constituency":"Gandarvakkottai","Winner_Party":"CPI-M","Winner_Alliance":"DMK_Alliance","Electors_2026":194732,"New_Voters":0,"Elector_Growth":0.8994,"DMK_Alliance_Share":0.4423,"AIADMK_Alliance_Share":0.3616,"NTK_share":0.0803,"DMK_share_adj":0.438,"AIADMK_share_adj":0.3073,"TVK_share_adj":0.1717,"Others_share_adj":0.083,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9859,"Seat_Risk":"DMK Safe"},{"Constituency":"Gangavalli","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":216794,"New_Voters":0,"Elector_Growth":0.8462,"DMK_Alliance_Share":0.4408,"AIADMK_Alliance_Share":0.4802,"NTK_share":0.05,"DMK_share_adj":0.4136,"AIADMK_share_adj":0.4166,"TVK_share_adj":0.1493,"Others_share_adj":0.0205,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.2924,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Gingee","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":240957,"New_Voters":0,"Elector_Growth":0.8479,"DMK_Alliance_Share":0.5299,"AIADMK_Alliance_Share":0.3568,"NTK_share":0.048,"DMK_share_adj":0.5095,"AIADMK_share_adj":0.2806,"TVK_share_adj":0.1885,"Others_share_adj":0.0215,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9991,"Seat_Risk":"DMK Safe"},{"Constituency":"Gobichettipalayam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":237581,"New_Voters":0,"Elector_Growth":0.8072,"DMK_Alliance_Share":0.3736,"AIADMK_Alliance_Share":0.5068,"NTK_share":0.0547,"DMK_share_adj":0.3547,"AIADMK_share_adj":0.4553,"TVK_share_adj":0.1617,"Others_share_adj":0.0282,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0079,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Gudalur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":183888,"New_Voters":0,"Elector_Growth":0.9683,"DMK_Alliance_Share":0.4524,"AIADMK_Alliance_Share":0.475,"NTK_share":0.0529,"DMK_share_adj":0.4293,"AIADMK_share_adj":0.4198,"TVK_share_adj":0.1305,"Others_share_adj":0.0204,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.5682,"Seat_Risk":"Marginal"},{"Constituency":"Gudiyattam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":248526,"New_Voters":0,"Elector_Growth":0.8549,"DMK_Alliance_Share":0.4745,"AIADMK_Alliance_Share":0.4419,"NTK_share":0.0559,"DMK_share_adj":0.4368,"AIADMK_share_adj":0.3572,"TVK_share_adj":0.1857,"Others_share_adj":0.0204,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8626,"Seat_Risk":"DMK Safe"},{"Constituency":"Gummidipoondi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":251603,"New_Voters":0,"Elector_Growth":0.8248,"DMK_Alliance_Share":0.5694,"AIADMK_Alliance_Share":0.3516,"NTK_share":0.0527,"DMK_share_adj":0.5633,"AIADMK_share_adj":0.3118,"TVK_share_adj":0.1042,"Others_share_adj":0.0207,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9999,"Seat_Risk":"DMK Safe"},{"Constituency":"Harbour","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":116896,"New_Voters":0,"Elector_Growth":0.8372,"DMK_Alliance_Share":0.5835,"AIADMK_Alliance_Share":0.3152,"NTK_share":0.033,"DMK_share_adj":0.5835,"AIADMK_share_adj":0.2861,"TVK_share_adj":0.0799,"Others_share_adj":0.0506,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Harur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":243742,"New_Voters":0,"Elector_Growth":0.8936,"DMK_Alliance_Share":0.346,"AIADMK_Alliance_Share":0.4989,"NTK_share":0.0551,"DMK_share_adj":0.3304,"AIADMK_share_adj":0.4564,"TVK_share_adj":0.1431,"Others_share_adj":0.07,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0036,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Hosur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":338295,"New_Voters":0,"Elector_Growth":0.9927,"DMK_Alliance_Share":0.4765,"AIADMK_Alliance_Share":0.4267,"NTK_share":0.046,"DMK_share_adj":0.4426,"AIADMK_share_adj":0.3428,"TVK_share_adj":0.194,"Others_share_adj":0.0206,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8707,"Seat_Risk":"DMK Safe"},{"Constituency":"Jayankondam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":261793,"New_Voters":0,"Elector_Growth":0.8808,"DMK_Alliance_Share":0.46,"AIADMK_Alliance_Share":0.4348,"NTK_share":0.046,"DMK_share_adj":0.4417,"AIADMK_share_adj":0.3748,"TVK_share_adj":0.1619,"Others_share_adj":0.0216,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7636,"Seat_Risk":"DMK Safe"},{"Constituency":"Jolarpet","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":233830,"New_Voters":0,"Elector_Growth":0.8669,"DMK_Alliance_Share":0.4557,"AIADMK_Alliance_Share":0.4502,"NTK_share":0.0679,"DMK_share_adj":0.413,"AIADMK_share_adj":0.3543,"TVK_share_adj":0.2123,"Others_share_adj":0.0205,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7603,"Seat_Risk":"DMK Safe"},{"Constituency":"Kadayanallur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":267517,"New_Voters":0,"Elector_Growth":0.9483,"DMK_Alliance_Share":0.3122,"AIADMK_Alliance_Share":0.4308,"NTK_share":0.0494,"DMK_share_adj":0.2931,"AIADMK_share_adj":0.3825,"TVK_share_adj":0.1414,"Others_share_adj":0.183,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0072,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Kalasapakkam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":230766,"New_Voters":0,"Elector_Growth":0.8552,"DMK_Alliance_Share":0.4792,"AIADMK_Alliance_Share":0.4463,"NTK_share":0.0449,"DMK_share_adj":0.4367,"AIADMK_share_adj":0.357,"TVK_share_adj":0.1861,"Others_share_adj":0.0202,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8518,"Seat_Risk":"DMK Safe"},{"Constituency":"Kallakurichi","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":278762,"New_Voters":0,"Elector_Growth":0.8985,"DMK_Alliance_Share":0.3752,"AIADMK_Alliance_Share":0.519,"NTK_share":0.0729,"DMK_share_adj":0.3697,"AIADMK_share_adj":0.4934,"TVK_share_adj":0.1156,"Others_share_adj":0.0212,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0079,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Kancheepuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":276299,"New_Voters":0,"Elector_Growth":0.8767,"DMK_Alliance_Share":0.4477,"AIADMK_Alliance_Share":0.3971,"NTK_share":0.0608,"DMK_share_adj":0.4337,"AIADMK_share_adj":0.337,"TVK_share_adj":0.1717,"Others_share_adj":0.0576,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.899,"Seat_Risk":"DMK Safe"},{"Constituency":"Kangayam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":216646,"New_Voters":0,"Elector_Growth":0.7893,"DMK_Alliance_Share":0.4714,"AIADMK_Alliance_Share":0.4347,"NTK_share":0.0566,"DMK_share_adj":0.4528,"AIADMK_share_adj":0.3774,"TVK_share_adj":0.1491,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8874,"Seat_Risk":"DMK Safe"},{"Constituency":"Kanniyakumari","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":286968,"New_Voters":0,"Elector_Growth":0.929,"DMK_Alliance_Share":0.4159,"AIADMK_Alliance_Share":0.488,"NTK_share":0.0629,"DMK_share_adj":0.374,"AIADMK_share_adj":0.3955,"TVK_share_adj":0.21,"Others_share_adj":0.0205,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0966,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Karaikudi","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":303371,"New_Voters":11536,"Elector_Growth":1.0395,"DMK_Alliance_Share":0.3575,"AIADMK_Alliance_Share":0.2559,"NTK_share":0.1124,"DMK_share_adj":0.343,"AIADMK_share_adj":0.1656,"TVK_share_adj":0.2481,"Others_share_adj":0.2433,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9894,"Seat_Risk":"DMK Safe"},{"Constituency":"Karur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":226584,"New_Voters":0,"Elector_Growth":0.7957,"DMK_Alliance_Share":0.4908,"AIADMK_Alliance_Share":0.4354,"NTK_share":0.0353,"DMK_share_adj":0.4516,"AIADMK_share_adj":0.3515,"TVK_share_adj":0.1767,"Others_share_adj":0.0202,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9093,"Seat_Risk":"DMK Safe"},{"Constituency":"Katpadi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":225809,"New_Voters":0,"Elector_Growth":0.8826,"DMK_Alliance_Share":0.4571,"AIADMK_Alliance_Share":0.4531,"NTK_share":0.0561,"DMK_share_adj":0.4415,"AIADMK_share_adj":0.4039,"TVK_share_adj":0.1338,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7132,"Seat_Risk":"DMK Safe"},{"Constituency":"Kattumannarkoil","Winner_Party":"VCK","Winner_Alliance":"DMK_Alliance","Electors_2026":224565,"New_Voters":0,"Elector_Growth":0.9312,"DMK_Alliance_Share":0.4902,"AIADMK_Alliance_Share":0.43,"NTK_share":0.0388,"DMK_share_adj":0.473,"AIADMK_share_adj":0.3793,"TVK_share_adj":0.1271,"Others_share_adj":0.0206,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9432,"Seat_Risk":"DMK Safe"},{"Constituency":"Kavundampalayam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":407507,"New_Voters":0,"Elector_Growth":0.9572,"DMK_Alliance_Share":0.4062,"AIADMK_Alliance_Share":0.4378,"NTK_share":0.0577,"DMK_share_adj":0.3623,"AIADMK_share_adj":0.327,"TVK_share_adj":0.2752,"Others_share_adj":0.0355,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.1475,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Killiyoor","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":243837,"New_Voters":10433,"Elector_Growth":1.0447,"DMK_Alliance_Share":0.5976,"AIADMK_Alliance_Share":0.2715,"NTK_share":0.0854,"DMK_share_adj":0.5973,"AIADMK_share_adj":0.2136,"TVK_share_adj":0.1621,"Others_share_adj":0.027,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Kilpennathur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":238913,"New_Voters":0,"Elector_Growth":0.8531,"DMK_Alliance_Share":0.5134,"AIADMK_Alliance_Share":0.382,"NTK_share":0.0566,"DMK_share_adj":0.5177,"AIADMK_share_adj":0.352,"TVK_share_adj":0.106,"Others_share_adj":0.0244,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9966,"Seat_Risk":"DMK Safe"},{"Constituency":"Kilvaithinankuppam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":213451,"New_Voters":0,"Elector_Growth":0.8924,"DMK_Alliance_Share":0.425,"AIADMK_Alliance_Share":0.494,"NTK_share":0.0576,"DMK_share_adj":0.4188,"AIADMK_share_adj":0.4673,"TVK_share_adj":0.0932,"Others_share_adj":0.0208,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.1473,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Kilvelur","Winner_Party":"CPI-M","Winner_Alliance":"DMK_Alliance","Electors_2026":168934,"New_Voters":0,"Elector_Growth":0.8601,"DMK_Alliance_Share":0.4755,"AIADMK_Alliance_Share":0.3567,"NTK_share":0.1061,"DMK_share_adj":0.5123,"AIADMK_share_adj":0.3599,"TVK_share_adj":0.0783,"Others_share_adj":0.0495,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9986,"Seat_Risk":"DMK Safe"},{"Constituency":"Kinathukadavu","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":300486,"New_Voters":0,"Elector_Growth":0.9411,"DMK_Alliance_Share":0.4321,"AIADMK_Alliance_Share":0.4368,"NTK_share":0.0485,"DMK_share_adj":0.399,"AIADMK_share_adj":0.3489,"TVK_share_adj":0.2205,"Others_share_adj":0.0316,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.4553,"Seat_Risk":"Marginal"},{"Constituency":"Kolathur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":207251,"New_Voters":0,"Elector_Growth":0.8702,"DMK_Alliance_Share":0.6086,"AIADMK_Alliance_Share":0.2027,"NTK_share":0.0651,"DMK_share_adj":0.6144,"AIADMK_share_adj":0.1437,"TVK_share_adj":0.1462,"Others_share_adj":0.0958,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Kovilpatti","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":240017,"New_Voters":0,"Elector_Growth":0.9658,"DMK_Alliance_Share":0.2066,"AIADMK_Alliance_Share":0.3789,"NTK_share":0.0509,"DMK_share_adj":0.1705,"AIADMK_share_adj":0.3048,"TVK_share_adj":0.1889,"Others_share_adj":0.3358,"Winner_adj":"Others","LR_DMK_WinProb":0.0006,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Krishnagiri","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":265037,"New_Voters":0,"Elector_Growth":0.9116,"DMK_Alliance_Share":0.4501,"AIADMK_Alliance_Share":0.4538,"NTK_share":0.0526,"DMK_share_adj":0.429,"AIADMK_share_adj":0.3938,"TVK_share_adj":0.1564,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.5709,"Seat_Risk":"Marginal"},{"Constituency":"Krishnarayapuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":202087,"New_Voters":0,"Elector_Growth":0.8133,"DMK_Alliance_Share":0.5337,"AIADMK_Alliance_Share":0.3696,"NTK_share":0.0537,"DMK_share_adj":0.5227,"AIADMK_share_adj":0.3162,"TVK_share_adj":0.1401,"Others_share_adj":0.0209,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9992,"Seat_Risk":"DMK Safe"},{"Constituency":"Kulithalai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":221988,"New_Voters":0,"Elector_Growth":0.8184,"DMK_Alliance_Share":0.5106,"AIADMK_Alliance_Share":0.3914,"NTK_share":0.0583,"DMK_share_adj":0.4871,"AIADMK_share_adj":0.3205,"TVK_share_adj":0.1716,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9951,"Seat_Risk":"DMK Safe"},{"Constituency":"Kumarapalayam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":217224,"New_Voters":0,"Elector_Growth":0.7832,"DMK_Alliance_Share":0.3425,"AIADMK_Alliance_Share":0.5043,"NTK_share":0.0656,"DMK_share_adj":0.3331,"AIADMK_share_adj":0.4728,"TVK_share_adj":0.1337,"Others_share_adj":0.0604,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0032,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Kumbakonam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":251868,"New_Voters":0,"Elector_Growth":0.9281,"DMK_Alliance_Share":0.4862,"AIADMK_Alliance_Share":0.378,"NTK_share":0.0632,"DMK_share_adj":0.4716,"AIADMK_share_adj":0.3088,"TVK_share_adj":0.1894,"Others_share_adj":0.0302,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9922,"Seat_Risk":"DMK Safe"},{"Constituency":"Kunnam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":266682,"New_Voters":0,"Elector_Growth":0.883,"DMK_Alliance_Share":0.4726,"AIADMK_Alliance_Share":0.4438,"NTK_share":0.0425,"DMK_share_adj":0.4497,"AIADMK_share_adj":0.3836,"TVK_share_adj":0.1462,"Others_share_adj":0.0206,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7851,"Seat_Risk":"DMK Safe"},{"Constituency":"Kurinjipadi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":236297,"New_Voters":0,"Elector_Growth":0.8654,"DMK_Alliance_Share":0.5104,"AIADMK_Alliance_Share":0.4222,"NTK_share":0.0428,"DMK_share_adj":0.4833,"AIADMK_share_adj":0.3597,"TVK_share_adj":0.1367,"Others_share_adj":0.0203,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9794,"Seat_Risk":"DMK Safe"},{"Constituency":"Lalgudi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":211043,"New_Voters":0,"Elector_Growth":0.8792,"DMK_Alliance_Share":0.4859,"AIADMK_Alliance_Share":0.3889,"NTK_share":0.093,"DMK_share_adj":0.4937,"AIADMK_share_adj":0.3569,"TVK_share_adj":0.1278,"Others_share_adj":0.0216,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9953,"Seat_Risk":"DMK Safe"},{"Constituency":"Madathukulam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":212742,"New_Voters":0,"Elector_Growth":0.8514,"DMK_Alliance_Share":0.4281,"AIADMK_Alliance_Share":0.4635,"NTK_share":0.0343,"DMK_share_adj":0.4209,"AIADMK_share_adj":0.4351,"TVK_share_adj":0.0897,"Others_share_adj":0.0543,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.2318,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Madavaram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":420601,"New_Voters":4804,"Elector_Growth":1.0116,"DMK_Alliance_Share":0.5004,"AIADMK_Alliance_Share":0.3119,"NTK_share":0.0907,"DMK_share_adj":0.4822,"AIADMK_share_adj":0.2085,"TVK_share_adj":0.2686,"Others_share_adj":0.0407,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9995,"Seat_Risk":"DMK Safe"},{"Constituency":"Madurai Central","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":196856,"New_Voters":0,"Elector_Growth":0.9591,"DMK_Alliance_Share":0.4899,"AIADMK_Alliance_Share":0.2612,"NTK_share":0.0751,"DMK_share_adj":0.5011,"AIADMK_share_adj":0.2253,"TVK_share_adj":0.1142,"Others_share_adj":0.1594,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9999,"Seat_Risk":"DMK Safe"},{"Constituency":"Madurai East","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":330993,"New_Voters":4218,"Elector_Growth":1.0129,"DMK_Alliance_Share":0.5159,"AIADMK_Alliance_Share":0.3074,"NTK_share":0.0743,"DMK_share_adj":0.4994,"AIADMK_share_adj":0.2186,"TVK_share_adj":0.2268,"Others_share_adj":0.0552,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9998,"Seat_Risk":"DMK Safe"},{"Constituency":"Madurai North","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":218719,"New_Voters":3670,"Elector_Growth":1.0171,"DMK_Alliance_Share":0.4664,"AIADMK_Alliance_Share":0.32,"NTK_share":0.0978,"DMK_share_adj":0.4721,"AIADMK_share_adj":0.2663,"TVK_share_adj":0.1758,"Others_share_adj":0.0859,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9992,"Seat_Risk":"DMK Safe"},{"Constituency":"Madurai South","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":177605,"New_Voters":0,"Elector_Growth":0.8746,"DMK_Alliance_Share":0.4249,"AIADMK_Alliance_Share":0.3808,"NTK_share":0.0709,"DMK_share_adj":0.4223,"AIADMK_share_adj":0.3399,"TVK_share_adj":0.14,"Others_share_adj":0.0978,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.936,"Seat_Risk":"DMK Safe"},{"Constituency":"Madurai West","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":271341,"New_Voters":0,"Elector_Growth":0.9794,"DMK_Alliance_Share":0.3707,"AIADMK_Alliance_Share":0.4328,"NTK_share":0.0904,"DMK_share_adj":0.353,"AIADMK_share_adj":0.3669,"TVK_share_adj":0.2178,"Others_share_adj":0.0622,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.1919,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Madurantakam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":211295,"New_Voters":0,"Elector_Growth":0.8277,"DMK_Alliance_Share":0.447,"AIADMK_Alliance_Share":0.4777,"NTK_share":0.05,"DMK_share_adj":0.4243,"AIADMK_share_adj":0.4226,"TVK_share_adj":0.1326,"Others_share_adj":0.0205,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.3727,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Maduravoyal","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":364031,"New_Voters":0,"Elector_Growth":0.9677,"DMK_Alliance_Share":0.4429,"AIADMK_Alliance_Share":0.3271,"NTK_share":0.0768,"DMK_share_adj":0.4234,"AIADMK_share_adj":0.2416,"TVK_share_adj":0.2254,"Others_share_adj":0.1096,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9881,"Seat_Risk":"DMK Safe"},{"Constituency":"Mailam","Winner_Party":"PMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":207665,"New_Voters":0,"Elector_Growth":0.8542,"DMK_Alliance_Share":0.4453,"AIADMK_Alliance_Share":0.4801,"NTK_share":0.0471,"DMK_share_adj":0.4229,"AIADMK_share_adj":0.4257,"TVK_share_adj":0.131,"Others_share_adj":0.0205,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.3381,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Manachanallur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":234217,"New_Voters":0,"Elector_Growth":0.8668,"DMK_Alliance_Share":0.5914,"AIADMK_Alliance_Share":0.2883,"NTK_share":0.0734,"DMK_share_adj":0.6165,"AIADMK_share_adj":0.2677,"TVK_share_adj":0.0869,"Others_share_adj":0.0289,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Manamadurai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":257616,"New_Voters":0,"Elector_Growth":0.9236,"DMK_Alliance_Share":0.4401,"AIADMK_Alliance_Share":0.3707,"NTK_share":0.1144,"DMK_share_adj":0.4673,"AIADMK_share_adj":0.3593,"TVK_share_adj":0.1185,"Others_share_adj":0.0549,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9865,"Seat_Risk":"DMK Safe"},{"Constituency":"Manapparai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":266019,"New_Voters":0,"Elector_Growth":0.8733,"DMK_Alliance_Share":0.4423,"AIADMK_Alliance_Share":0.4354,"NTK_share":0.0877,"DMK_share_adj":0.4463,"AIADMK_share_adj":0.4078,"TVK_share_adj":0.1243,"Others_share_adj":0.0216,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7942,"Seat_Risk":"DMK Safe"},{"Constituency":"Mannargudi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":231935,"New_Voters":0,"Elector_Growth":0.8738,"DMK_Alliance_Share":0.4511,"AIADMK_Alliance_Share":0.2576,"NTK_share":0.054,"DMK_share_adj":0.4487,"AIADMK_share_adj":0.2159,"TVK_share_adj":0.1128,"Others_share_adj":0.2226,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9993,"Seat_Risk":"DMK Safe"},{"Constituency":"Mayiladuthurai","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":232618,"New_Voters":0,"Elector_Growth":0.9697,"DMK_Alliance_Share":0.4217,"AIADMK_Alliance_Share":0.406,"NTK_share":0.0755,"DMK_share_adj":0.412,"AIADMK_share_adj":0.351,"TVK_share_adj":0.1763,"Others_share_adj":0.0607,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8271,"Seat_Risk":"DMK Safe"},{"Constituency":"Melur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":227789,"New_Voters":0,"Elector_Growth":0.9073,"DMK_Alliance_Share":0.2636,"AIADMK_Alliance_Share":0.456,"NTK_share":0.0584,"DMK_share_adj":0.2513,"AIADMK_share_adj":0.427,"TVK_share_adj":0.1144,"Others_share_adj":0.2072,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0006,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Mettuppalayam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":279438,"New_Voters":0,"Elector_Growth":0.9038,"DMK_Alliance_Share":0.4566,"AIADMK_Alliance_Share":0.4675,"NTK_share":0.0487,"DMK_share_adj":0.4228,"AIADMK_share_adj":0.3929,"TVK_share_adj":0.164,"Others_share_adj":0.0203,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.4724,"Seat_Risk":"Marginal"},{"Constituency":"Mettur","Winner_Party":"PMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":253445,"New_Voters":0,"Elector_Growth":0.8447,"DMK_Alliance_Share":0.4413,"AIADMK_Alliance_Share":0.4529,"NTK_share":0.0417,"DMK_share_adj":0.4014,"AIADMK_share_adj":0.3586,"TVK_share_adj":0.2193,"Others_share_adj":0.0207,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.4052,"Seat_Risk":"Marginal"},{"Constituency":"Modakkurichi","Winner_Party":"BJP","Winner_Alliance":"AIADMK_Alliance","Electors_2026":206122,"New_Voters":0,"Elector_Growth":0.8251,"DMK_Alliance_Share":0.4281,"AIADMK_Alliance_Share":0.4296,"NTK_share":0.0712,"DMK_share_adj":0.4296,"AIADMK_share_adj":0.4001,"TVK_share_adj":0.1249,"Others_share_adj":0.0454,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7033,"Seat_Risk":"DMK Safe"},{"Constituency":"Mudhukulathur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":297310,"New_Voters":0,"Elector_Growth":0.9784,"DMK_Alliance_Share":0.4606,"AIADMK_Alliance_Share":0.367,"NTK_share":0.0508,"DMK_share_adj":0.4281,"AIADMK_share_adj":0.2721,"TVK_share_adj":0.229,"Others_share_adj":0.0708,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9738,"Seat_Risk":"DMK Safe"},{"Constituency":"Musiri","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":212612,"New_Voters":0,"Elector_Growth":0.8613,"DMK_Alliance_Share":0.5043,"AIADMK_Alliance_Share":0.3727,"NTK_share":0.0796,"DMK_share_adj":0.5211,"AIADMK_share_adj":0.3519,"TVK_share_adj":0.1053,"Others_share_adj":0.0217,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9983,"Seat_Risk":"DMK Safe"},{"Constituency":"Mylapore","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":194731,"New_Voters":0,"Elector_Growth":0.924,"DMK_Alliance_Share":0.4458,"AIADMK_Alliance_Share":0.3634,"NTK_share":0.066,"DMK_share_adj":0.4465,"AIADMK_share_adj":0.3276,"TVK_share_adj":0.123,"Others_share_adj":0.1029,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9824,"Seat_Risk":"DMK Safe"},{"Constituency":"Nagapattinam","Winner_Party":"VCK","Winner_Alliance":"DMK_Alliance","Electors_2026":172979,"New_Voters":0,"Elector_Growth":0.8772,"DMK_Alliance_Share":0.4617,"AIADMK_Alliance_Share":0.4113,"NTK_share":0.0695,"DMK_share_adj":0.477,"AIADMK_share_adj":0.4037,"TVK_share_adj":0.0766,"Others_share_adj":0.0427,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.962,"Seat_Risk":"DMK Safe"},{"Constituency":"Nagercoil","Winner_Party":"BJP","Winner_Alliance":"AIADMK_Alliance","Electors_2026":257022,"New_Voters":4021,"Elector_Growth":1.0159,"DMK_Alliance_Share":0.4188,"AIADMK_Alliance_Share":0.4821,"NTK_share":0.0584,"DMK_share_adj":0.3983,"AIADMK_share_adj":0.422,"TVK_share_adj":0.1568,"Others_share_adj":0.0229,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.157,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Namakkal","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":235351,"New_Voters":0,"Elector_Growth":0.8287,"DMK_Alliance_Share":0.5151,"AIADMK_Alliance_Share":0.385,"NTK_share":0.049,"DMK_share_adj":0.4862,"AIADMK_share_adj":0.3043,"TVK_share_adj":0.1888,"Others_share_adj":0.0207,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9956,"Seat_Risk":"DMK Safe"},{"Constituency":"Nanguneri","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":254420,"New_Voters":0,"Elector_Growth":0.9621,"DMK_Alliance_Share":0.3943,"AIADMK_Alliance_Share":0.3086,"NTK_share":0.0917,"DMK_share_adj":0.4088,"AIADMK_share_adj":0.2893,"TVK_share_adj":0.1009,"Others_share_adj":0.2009,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9816,"Seat_Risk":"DMK Safe"},{"Constituency":"Nannilam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":264462,"New_Voters":0,"Elector_Growth":0.8675,"DMK_Alliance_Share":0.447,"AIADMK_Alliance_Share":0.467,"NTK_share":0.0605,"DMK_share_adj":0.409,"AIADMK_share_adj":0.3823,"TVK_share_adj":0.1883,"Others_share_adj":0.0204,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.4515,"Seat_Risk":"Marginal"},{"Constituency":"Natham","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":258603,"New_Voters":0,"Elector_Growth":0.8358,"DMK_Alliance_Share":0.4254,"AIADMK_Alliance_Share":0.4784,"NTK_share":0.0655,"DMK_share_adj":0.3952,"AIADMK_share_adj":0.4053,"TVK_share_adj":0.1788,"Others_share_adj":0.0207,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.1931,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Neyveli","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":189024,"New_Voters":0,"Elector_Growth":0.8384,"DMK_Alliance_Share":0.458,"AIADMK_Alliance_Share":0.4521,"NTK_share":0.0474,"DMK_share_adj":0.455,"AIADMK_share_adj":0.4237,"TVK_share_adj":0.1003,"Others_share_adj":0.021,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.723,"Seat_Risk":"DMK Safe"},{"Constituency":"Nilakkottai","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":219077,"New_Voters":0,"Elector_Growth":0.863,"DMK_Alliance_Share":0.3455,"AIADMK_Alliance_Share":0.5149,"NTK_share":0.0947,"DMK_share_adj":0.3593,"AIADMK_share_adj":0.5243,"TVK_share_adj":0.089,"Others_share_adj":0.0273,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.006,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Oddanchatram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":217698,"New_Voters":0,"Elector_Growth":0.7855,"DMK_Alliance_Share":0.5451,"AIADMK_Alliance_Share":0.4097,"NTK_share":0.0245,"DMK_share_adj":0.505,"AIADMK_share_adj":0.3361,"TVK_share_adj":0.1391,"Others_share_adj":0.0198,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9952,"Seat_Risk":"DMK Safe"},{"Constituency":"Omalur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":291866,"New_Voters":0,"Elector_Growth":0.8532,"DMK_Alliance_Share":0.3501,"AIADMK_Alliance_Share":0.5722,"NTK_share":0.0378,"DMK_share_adj":0.3146,"AIADMK_share_adj":0.499,"TVK_share_adj":0.1661,"Others_share_adj":0.0203,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0002,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Orathanadu","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":231251,"New_Voters":0,"Elector_Growth":0.8776,"DMK_Alliance_Share":0.3192,"AIADMK_Alliance_Share":0.4695,"NTK_share":0.0472,"DMK_share_adj":0.2942,"AIADMK_share_adj":0.4111,"TVK_share_adj":0.1631,"Others_share_adj":0.1315,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0027,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Ottapidaram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":240988,"New_Voters":0,"Elector_Growth":0.9865,"DMK_Alliance_Share":0.4111,"AIADMK_Alliance_Share":0.3932,"NTK_share":0.126,"DMK_share_adj":0.4266,"AIADMK_share_adj":0.3623,"TVK_share_adj":0.1753,"Others_share_adj":0.0359,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9397,"Seat_Risk":"DMK Safe"},{"Constituency":"Padmanabhapuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":234056,"New_Voters":325,"Elector_Growth":1.0014,"DMK_Alliance_Share":0.5157,"AIADMK_Alliance_Share":0.3577,"NTK_share":0.0817,"DMK_share_adj":0.4888,"AIADMK_share_adj":0.2659,"TVK_share_adj":0.224,"Others_share_adj":0.0213,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9994,"Seat_Risk":"DMK Safe"},{"Constituency":"Palacode","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":237476,"New_Voters":0,"Elector_Growth":0.8368,"DMK_Alliance_Share":0.3968,"AIADMK_Alliance_Share":0.5444,"NTK_share":0.0373,"DMK_share_adj":0.363,"AIADMK_share_adj":0.4759,"TVK_share_adj":0.141,"Others_share_adj":0.0201,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0041,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Palani","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":237359,"New_Voters":0,"Elector_Growth":0.8413,"DMK_Alliance_Share":0.5286,"AIADMK_Alliance_Share":0.3823,"NTK_share":0.0373,"DMK_share_adj":0.5207,"AIADMK_share_adj":0.3404,"TVK_share_adj":0.1133,"Others_share_adj":0.0256,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9971,"Seat_Risk":"DMK Safe"},{"Constituency":"Palayamkottai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":255130,"New_Voters":33851,"Elector_Growth":1.153,"DMK_Alliance_Share":0.5532,"AIADMK_Alliance_Share":0.2295,"NTK_share":0.0724,"DMK_share_adj":0.5312,"AIADMK_share_adj":0.1624,"TVK_share_adj":0.1905,"Others_share_adj":0.1159,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Palladam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":322530,"New_Voters":0,"Elector_Growth":0.8979,"DMK_Alliance_Share":0.3603,"AIADMK_Alliance_Share":0.4853,"NTK_share":0.0785,"DMK_share_adj":0.3333,"AIADMK_share_adj":0.4112,"TVK_share_adj":0.2307,"Others_share_adj":0.0248,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0112,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Pallavaram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":330217,"New_Voters":0,"Elector_Growth":0.9031,"DMK_Alliance_Share":0.4749,"AIADMK_Alliance_Share":0.347,"NTK_share":0.0802,"DMK_share_adj":0.4449,"AIADMK_share_adj":0.2343,"TVK_share_adj":0.286,"Others_share_adj":0.0349,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9949,"Seat_Risk":"DMK Safe"},{"Constituency":"Panruti","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":240048,"New_Voters":0,"Elector_Growth":0.8869,"DMK_Alliance_Share":0.476,"AIADMK_Alliance_Share":0.4693,"NTK_share":0.0332,"DMK_share_adj":0.4248,"AIADMK_share_adj":0.3724,"TVK_share_adj":0.183,"Others_share_adj":0.0198,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.6295,"Seat_Risk":"DMK Safe"},{"Constituency":"Papanasam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":254652,"New_Voters":0,"Elector_Growth":0.9411,"DMK_Alliance_Share":0.4395,"AIADMK_Alliance_Share":0.3569,"NTK_share":0.0747,"DMK_share_adj":0.4276,"AIADMK_share_adj":0.291,"TVK_share_adj":0.1894,"Others_share_adj":0.092,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9787,"Seat_Risk":"DMK Safe"},{"Constituency":"Pappireddipatti","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":254658,"New_Voters":0,"Elector_Growth":0.8389,"DMK_Alliance_Share":0.351,"AIADMK_Alliance_Share":0.5181,"NTK_share":0.0343,"DMK_share_adj":0.3066,"AIADMK_share_adj":0.4229,"TVK_share_adj":0.2273,"Others_share_adj":0.0432,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0012,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Paramakudi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":233433,"New_Voters":0,"Elector_Growth":0.9329,"DMK_Alliance_Share":0.4659,"AIADMK_Alliance_Share":0.404,"NTK_share":0.0902,"DMK_share_adj":0.4819,"AIADMK_share_adj":0.3869,"TVK_share_adj":0.1093,"Others_share_adj":0.0219,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9791,"Seat_Risk":"DMK Safe"},{"Constituency":"Paramathi-Velur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":203567,"New_Voters":0,"Elector_Growth":0.8067,"DMK_Alliance_Share":0.4266,"AIADMK_Alliance_Share":0.4683,"NTK_share":0.0636,"DMK_share_adj":0.4261,"AIADMK_share_adj":0.4431,"TVK_share_adj":0.1095,"Others_share_adj":0.0213,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.3244,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Pattukkottai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":240954,"New_Voters":0,"Elector_Growth":0.9899,"DMK_Alliance_Share":0.4462,"AIADMK_Alliance_Share":0.3036,"NTK_share":0.0606,"DMK_share_adj":0.4443,"AIADMK_share_adj":0.2618,"TVK_share_adj":0.1226,"Others_share_adj":0.1712,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9969,"Seat_Risk":"DMK Safe"},{"Constituency":"Pennagaram","Winner_Party":"PMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":246293,"New_Voters":0,"Elector_Growth":0.8526,"DMK_Alliance_Share":0.4039,"AIADMK_Alliance_Share":0.5185,"NTK_share":0.0425,"DMK_share_adj":0.3774,"AIADMK_share_adj":0.4588,"TVK_share_adj":0.1433,"Others_share_adj":0.0205,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.015,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Perambalur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":288449,"New_Voters":0,"Elector_Growth":0.8749,"DMK_Alliance_Share":0.5087,"AIADMK_Alliance_Share":0.3916,"NTK_share":0.0778,"DMK_share_adj":0.5009,"AIADMK_share_adj":0.3445,"TVK_share_adj":0.1336,"Others_share_adj":0.021,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9953,"Seat_Risk":"DMK Safe"},{"Constituency":"Perambur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":222792,"New_Voters":0,"Elector_Growth":0.8094,"DMK_Alliance_Share":0.5253,"AIADMK_Alliance_Share":0.251,"NTK_share":0.0989,"DMK_share_adj":0.5369,"AIADMK_share_adj":0.1863,"TVK_share_adj":0.1844,"Others_share_adj":0.0924,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Peravurani","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":212826,"New_Voters":0,"Elector_Growth":0.9069,"DMK_Alliance_Share":0.5217,"AIADMK_Alliance_Share":0.3936,"NTK_share":0.0711,"DMK_share_adj":0.5072,"AIADMK_share_adj":0.3422,"TVK_share_adj":0.1299,"Others_share_adj":0.0207,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9981,"Seat_Risk":"DMK Safe"},{"Constituency":"Periyakulam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":263547,"New_Voters":0,"Elector_Growth":0.9508,"DMK_Alliance_Share":0.4571,"AIADMK_Alliance_Share":0.3515,"NTK_share":0.0584,"DMK_share_adj":0.4569,"AIADMK_share_adj":0.3161,"TVK_share_adj":0.1144,"Others_share_adj":0.1126,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9872,"Seat_Risk":"DMK Safe"},{"Constituency":"Perundurai","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":212084,"New_Voters":0,"Elector_Growth":0.8133,"DMK_Alliance_Share":0.372,"AIADMK_Alliance_Share":0.4529,"NTK_share":0.0542,"DMK_share_adj":0.3686,"AIADMK_share_adj":0.4295,"TVK_share_adj":0.0988,"Others_share_adj":0.1031,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0546,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Pollachi","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":202015,"New_Voters":0,"Elector_Growth":0.8294,"DMK_Alliance_Share":0.4447,"AIADMK_Alliance_Share":0.4544,"NTK_share":0.0361,"DMK_share_adj":0.425,"AIADMK_share_adj":0.3987,"TVK_share_adj":0.1455,"Others_share_adj":0.0309,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.4788,"Seat_Risk":"Marginal"},{"Constituency":"Polur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":232426,"New_Voters":0,"Elector_Growth":0.8376,"DMK_Alliance_Share":0.4357,"AIADMK_Alliance_Share":0.4838,"NTK_share":0.0505,"DMK_share_adj":0.3967,"AIADMK_share_adj":0.3998,"TVK_share_adj":0.1832,"Others_share_adj":0.0203,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.2066,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Ponneri","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":248917,"New_Voters":0,"Elector_Growth":0.8615,"DMK_Alliance_Share":0.4494,"AIADMK_Alliance_Share":0.4033,"NTK_share":0.0905,"DMK_share_adj":0.4185,"AIADMK_share_adj":0.3055,"TVK_share_adj":0.2545,"Others_share_adj":0.0215,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9491,"Seat_Risk":"DMK Safe"},{"Constituency":"Poompuhar","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":257129,"New_Voters":0,"Elector_Growth":0.9007,"DMK_Alliance_Share":0.4624,"AIADMK_Alliance_Share":0.4465,"NTK_share":0.0713,"DMK_share_adj":0.3931,"AIADMK_share_adj":0.3074,"TVK_share_adj":0.2794,"Others_share_adj":0.02,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.826,"Seat_Risk":"DMK Safe"},{"Constituency":"Poonamallee","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":363688,"New_Voters":1413,"Elector_Growth":1.0039,"DMK_Alliance_Share":0.5672,"AIADMK_Alliance_Share":0.2103,"NTK_share":0.1133,"DMK_share_adj":0.5708,"AIADMK_share_adj":0.1013,"TVK_share_adj":0.2723,"Others_share_adj":0.0555,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Pudukkottai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":223928,"New_Voters":0,"Elector_Growth":0.9062,"DMK_Alliance_Share":0.477,"AIADMK_Alliance_Share":0.4151,"NTK_share":0.0639,"DMK_share_adj":0.4816,"AIADMK_share_adj":0.3884,"TVK_share_adj":0.1087,"Others_share_adj":0.0213,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9653,"Seat_Risk":"DMK Safe"},{"Constituency":"Radhapuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":244480,"New_Voters":0,"Elector_Growth":0.9502,"DMK_Alliance_Share":0.4395,"AIADMK_Alliance_Share":0.4209,"NTK_share":0.1034,"DMK_share_adj":0.4703,"AIADMK_share_adj":0.4303,"TVK_share_adj":0.0771,"Others_share_adj":0.0223,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9167,"Seat_Risk":"DMK Safe"},{"Constituency":"Rajapalayam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":212220,"New_Voters":0,"Elector_Growth":0.8645,"DMK_Alliance_Share":0.415,"AIADMK_Alliance_Share":0.3932,"NTK_share":0.0873,"DMK_share_adj":0.415,"AIADMK_share_adj":0.3514,"TVK_share_adj":0.1587,"Others_share_adj":0.075,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8774,"Seat_Risk":"DMK Safe"},{"Constituency":"Ramanathapuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":310165,"New_Voters":16074,"Elector_Growth":1.0547,"DMK_Alliance_Share":0.5188,"AIADMK_Alliance_Share":0.2831,"NTK_share":0.0796,"DMK_share_adj":0.5132,"AIADMK_share_adj":0.2178,"TVK_share_adj":0.1814,"Others_share_adj":0.0877,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9999,"Seat_Risk":"DMK Safe"},{"Constituency":"Ranipet","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":245853,"New_Voters":0,"Elector_Growth":0.8627,"DMK_Alliance_Share":0.4979,"AIADMK_Alliance_Share":0.4184,"NTK_share":0.0493,"DMK_share_adj":0.4771,"AIADMK_share_adj":0.3594,"TVK_share_adj":0.1429,"Others_share_adj":0.0206,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9717,"Seat_Risk":"DMK Safe"},{"Constituency":"Rasipuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":220554,"New_Voters":0,"Elector_Growth":0.8154,"DMK_Alliance_Share":0.4608,"AIADMK_Alliance_Share":0.4509,"NTK_share":0.0574,"DMK_share_adj":0.4499,"AIADMK_share_adj":0.4096,"TVK_share_adj":0.1196,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7483,"Seat_Risk":"DMK Safe"},{"Constituency":"Rishivandiyam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":270541,"New_Voters":0,"Elector_Growth":0.9156,"DMK_Alliance_Share":0.5296,"AIADMK_Alliance_Share":0.3356,"NTK_share":0.0561,"DMK_share_adj":0.5172,"AIADMK_share_adj":0.2679,"TVK_share_adj":0.1752,"Others_share_adj":0.0397,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9996,"Seat_Risk":"DMK Safe"},{"Constituency":"Royapuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":156931,"New_Voters":0,"Elector_Growth":0.9427,"DMK_Alliance_Share":0.5316,"AIADMK_Alliance_Share":0.3024,"NTK_share":0.0656,"DMK_share_adj":0.531,"AIADMK_share_adj":0.2477,"TVK_share_adj":0.1518,"Others_share_adj":0.0695,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Saidapet","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":200697,"New_Voters":0,"Elector_Growth":0.9113,"DMK_Alliance_Share":0.5002,"AIADMK_Alliance_Share":0.3168,"NTK_share":0.0668,"DMK_share_adj":0.5004,"AIADMK_share_adj":0.2681,"TVK_share_adj":0.1427,"Others_share_adj":0.0889,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9996,"Seat_Risk":"DMK Safe"},{"Constituency":"Salem (North)","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":236088,"New_Voters":0,"Elector_Growth":0.8493,"DMK_Alliance_Share":0.4617,"AIADMK_Alliance_Share":0.4242,"NTK_share":0.0403,"DMK_share_adj":0.4438,"AIADMK_share_adj":0.3676,"TVK_share_adj":0.1489,"Others_share_adj":0.0397,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8305,"Seat_Risk":"DMK Safe"},{"Constituency":"Salem (South)","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":224097,"New_Voters":0,"Elector_Growth":0.8158,"DMK_Alliance_Share":0.3745,"AIADMK_Alliance_Share":0.4876,"NTK_share":0.0509,"DMK_share_adj":0.3682,"AIADMK_share_adj":0.4609,"TVK_share_adj":0.1056,"Others_share_adj":0.0653,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0163,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Salem (West)","Winner_Party":"PMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":255320,"New_Voters":0,"Elector_Growth":0.858,"DMK_Alliance_Share":0.3877,"AIADMK_Alliance_Share":0.4976,"NTK_share":0.0492,"DMK_share_adj":0.383,"AIADMK_share_adj":0.4737,"TVK_share_adj":0.0993,"Others_share_adj":0.0441,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0171,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Sankarankovil","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":236532,"New_Voters":0,"Elector_Growth":0.9392,"DMK_Alliance_Share":0.3892,"AIADMK_Alliance_Share":0.3603,"NTK_share":0.0755,"DMK_share_adj":0.3858,"AIADMK_share_adj":0.3194,"TVK_share_adj":0.1407,"Others_share_adj":0.1542,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8402,"Seat_Risk":"DMK Safe"},{"Constituency":"Sankarapuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":263136,"New_Voters":0,"Elector_Growth":0.8877,"DMK_Alliance_Share":0.5616,"AIADMK_Alliance_Share":0.3486,"NTK_share":0.0458,"DMK_share_adj":0.536,"AIADMK_share_adj":0.2744,"TVK_share_adj":0.169,"Others_share_adj":0.0206,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9998,"Seat_Risk":"DMK Safe"},{"Constituency":"Sankari","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":258678,"New_Voters":0,"Elector_Growth":0.8108,"DMK_Alliance_Share":0.4109,"AIADMK_Alliance_Share":0.4972,"NTK_share":0.0468,"DMK_share_adj":0.3571,"AIADMK_share_adj":0.3852,"TVK_share_adj":0.2374,"Others_share_adj":0.0203,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0383,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Sattur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":227963,"New_Voters":0,"Elector_Growth":0.8653,"DMK_Alliance_Share":0.3868,"AIADMK_Alliance_Share":0.3285,"NTK_share":0.0658,"DMK_share_adj":0.3741,"AIADMK_share_adj":0.2717,"TVK_share_adj":0.1598,"Others_share_adj":0.1944,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9126,"Seat_Risk":"DMK Safe"},{"Constituency":"Senthamangalam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":227327,"New_Voters":0,"Elector_Growth":0.8306,"DMK_Alliance_Share":0.4551,"AIADMK_Alliance_Share":0.4025,"NTK_share":0.0585,"DMK_share_adj":0.4348,"AIADMK_share_adj":0.3303,"TVK_share_adj":0.1943,"Others_share_adj":0.0405,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9256,"Seat_Risk":"DMK Safe"},{"Constituency":"Sholavandan","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":212502,"New_Voters":0,"Elector_Growth":0.8822,"DMK_Alliance_Share":0.4804,"AIADMK_Alliance_Share":0.4036,"NTK_share":0.0795,"DMK_share_adj":0.4845,"AIADMK_share_adj":0.3715,"TVK_share_adj":0.1226,"Others_share_adj":0.0214,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9864,"Seat_Risk":"DMK Safe"},{"Constituency":"Sholinghur","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":256118,"New_Voters":0,"Elector_Growth":0.832,"DMK_Alliance_Share":0.4918,"AIADMK_Alliance_Share":0.3727,"NTK_share":0.0431,"DMK_share_adj":0.4841,"AIADMK_share_adj":0.3297,"TVK_share_adj":0.1196,"Others_share_adj":0.0666,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9896,"Seat_Risk":"DMK Safe"},{"Constituency":"Shozhinganallur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":536991,"New_Voters":3536,"Elector_Growth":1.0066,"DMK_Alliance_Share":0.4418,"AIADMK_Alliance_Share":0.3607,"NTK_share":0.1001,"DMK_share_adj":0.4389,"AIADMK_share_adj":0.2966,"TVK_share_adj":0.2074,"Others_share_adj":0.0572,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9439,"Seat_Risk":"DMK Safe"},{"Constituency":"Singanallur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":266058,"New_Voters":0,"Elector_Growth":0.9588,"DMK_Alliance_Share":0.3484,"AIADMK_Alliance_Share":0.4022,"NTK_share":0.0414,"DMK_share_adj":0.3272,"AIADMK_share_adj":0.347,"TVK_share_adj":0.1451,"Others_share_adj":0.1807,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0734,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Sirkazhi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":239469,"New_Voters":0,"Elector_Growth":0.9112,"DMK_Alliance_Share":0.4916,"AIADMK_Alliance_Share":0.4281,"NTK_share":0.0576,"DMK_share_adj":0.433,"AIADMK_share_adj":0.3102,"TVK_share_adj":0.2367,"Others_share_adj":0.02,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9631,"Seat_Risk":"DMK Safe"},{"Constituency":"Sivaganga","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":276156,"New_Voters":0,"Elector_Growth":0.995,"DMK_Alliance_Share":0.3509,"AIADMK_Alliance_Share":0.4066,"NTK_share":0.1114,"DMK_share_adj":0.355,"AIADMK_share_adj":0.3779,"TVK_share_adj":0.1594,"Others_share_adj":0.1077,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.2924,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Sivakasi","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":225461,"New_Voters":0,"Elector_Growth":0.887,"DMK_Alliance_Share":0.4266,"AIADMK_Alliance_Share":0.333,"NTK_share":0.1128,"DMK_share_adj":0.4313,"AIADMK_share_adj":0.2762,"TVK_share_adj":0.1984,"Others_share_adj":0.0942,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.994,"Seat_Risk":"DMK Safe"},{"Constituency":"Sriperumbudur","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":375921,"New_Voters":12924,"Elector_Growth":1.0356,"DMK_Alliance_Share":0.4365,"AIADMK_Alliance_Share":0.3953,"NTK_share":0.0834,"DMK_share_adj":0.4239,"AIADMK_share_adj":0.3239,"TVK_share_adj":0.2076,"Others_share_adj":0.0447,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8832,"Seat_Risk":"DMK Safe"},{"Constituency":"Srirangam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":283862,"New_Voters":0,"Elector_Growth":0.8602,"DMK_Alliance_Share":0.4741,"AIADMK_Alliance_Share":0.3912,"NTK_share":0.0746,"DMK_share_adj":0.447,"AIADMK_share_adj":0.3011,"TVK_share_adj":0.2306,"Others_share_adj":0.0213,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9777,"Seat_Risk":"DMK Safe"},{"Constituency":"Srivaikuntam","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":212885,"New_Voters":0,"Elector_Growth":0.9428,"DMK_Alliance_Share":0.4675,"AIADMK_Alliance_Share":0.3618,"NTK_share":0.0773,"DMK_share_adj":0.466,"AIADMK_share_adj":0.3108,"TVK_share_adj":0.1625,"Others_share_adj":0.0607,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9945,"Seat_Risk":"DMK Safe"},{"Constituency":"Srivilliputhur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":222367,"New_Voters":0,"Elector_Growth":0.8749,"DMK_Alliance_Share":0.312,"AIADMK_Alliance_Share":0.3809,"NTK_share":0.11,"DMK_share_adj":0.3129,"AIADMK_share_adj":0.3525,"TVK_share_adj":0.1509,"Others_share_adj":0.1838,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.1713,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Sulur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":303541,"New_Voters":0,"Elector_Growth":0.9144,"DMK_Alliance_Share":0.3602,"AIADMK_Alliance_Share":0.4923,"NTK_share":0.0597,"DMK_share_adj":0.3325,"AIADMK_share_adj":0.4224,"TVK_share_adj":0.2023,"Others_share_adj":0.0428,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0066,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Tambaram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":323677,"New_Voters":0,"Elector_Growth":0.9465,"DMK_Alliance_Share":0.4693,"AIADMK_Alliance_Share":0.3214,"NTK_share":0.0783,"DMK_share_adj":0.4608,"AIADMK_share_adj":0.2519,"TVK_share_adj":0.1935,"Others_share_adj":0.0938,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9975,"Seat_Risk":"DMK Safe"},{"Constituency":"Tenkasi","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":279585,"New_Voters":0,"Elector_Growth":0.9506,"DMK_Alliance_Share":0.4171,"AIADMK_Alliance_Share":0.4154,"NTK_share":0.0716,"DMK_share_adj":0.3969,"AIADMK_share_adj":0.3427,"TVK_share_adj":0.2095,"Others_share_adj":0.0508,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.6507,"Seat_Risk":"DMK Safe"},{"Constituency":"Thalli","Winner_Party":"CPI","Winner_Alliance":"DMK_Alliance","Electors_2026":235984,"New_Voters":0,"Elector_Growth":0.8854,"DMK_Alliance_Share":0.6218,"AIADMK_Alliance_Share":0.332,"NTK_share":0.0195,"DMK_share_adj":0.5852,"AIADMK_share_adj":0.2648,"TVK_share_adj":0.1301,"Others_share_adj":0.0199,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Thanjavur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":249064,"New_Voters":0,"Elector_Growth":0.9305,"DMK_Alliance_Share":0.5325,"AIADMK_Alliance_Share":0.3124,"NTK_share":0.0891,"DMK_share_adj":0.5549,"AIADMK_share_adj":0.2834,"TVK_share_adj":0.119,"Others_share_adj":0.0427,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9999,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiru-Vi-Ka-Nagar","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":178793,"New_Voters":0,"Elector_Growth":0.9736,"DMK_Alliance_Share":0.6113,"AIADMK_Alliance_Share":0.2132,"NTK_share":0.0817,"DMK_share_adj":0.6488,"AIADMK_share_adj":0.1985,"TVK_share_adj":0.0674,"Others_share_adj":0.0854,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Thirumangalam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":259225,"New_Voters":0,"Elector_Growth":0.8559,"DMK_Alliance_Share":0.3912,"AIADMK_Alliance_Share":0.4551,"NTK_share":0.0526,"DMK_share_adj":0.3678,"AIADMK_share_adj":0.3902,"TVK_share_adj":0.1802,"Others_share_adj":0.0618,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0841,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Thirumayam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":219279,"New_Voters":0,"Elector_Growth":0.9173,"DMK_Alliance_Share":0.41,"AIADMK_Alliance_Share":0.402,"NTK_share":0.0636,"DMK_share_adj":0.3839,"AIADMK_share_adj":0.3216,"TVK_share_adj":0.2154,"Others_share_adj":0.079,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7128,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiruparankundram","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":307783,"New_Voters":0,"Elector_Growth":0.95,"DMK_Alliance_Share":0.3146,"AIADMK_Alliance_Share":0.4396,"NTK_share":0.0963,"DMK_share_adj":0.2925,"AIADMK_share_adj":0.3753,"TVK_share_adj":0.2223,"Others_share_adj":0.1098,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0142,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Thiruporur","Winner_Party":"VCK","Winner_Alliance":"DMK_Alliance","Electors_2026":289401,"New_Voters":0,"Elector_Growth":0.9292,"DMK_Alliance_Share":0.4144,"AIADMK_Alliance_Share":0.4058,"NTK_share":0.0901,"DMK_share_adj":0.4065,"AIADMK_share_adj":0.3481,"TVK_share_adj":0.1958,"Others_share_adj":0.0496,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.7645,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiruthuraipoondi","Winner_Party":"CPI","Winner_Alliance":"DMK_Alliance","Electors_2026":225363,"New_Voters":0,"Elector_Growth":0.8826,"DMK_Alliance_Share":0.5223,"AIADMK_Alliance_Share":0.3606,"NTK_share":0.0826,"DMK_share_adj":0.514,"AIADMK_share_adj":0.3013,"TVK_share_adj":0.1634,"Others_share_adj":0.0212,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9995,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiruvaiyaru","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":256377,"New_Voters":0,"Elector_Growth":0.8828,"DMK_Alliance_Share":0.4882,"AIADMK_Alliance_Share":0.2344,"NTK_share":0.0748,"DMK_share_adj":0.4697,"AIADMK_share_adj":0.1376,"TVK_share_adj":0.2316,"Others_share_adj":0.1611,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiruvallur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":248651,"New_Voters":0,"Elector_Growth":0.8449,"DMK_Alliance_Share":0.5027,"AIADMK_Alliance_Share":0.3968,"NTK_share":0.0701,"DMK_share_adj":0.48,"AIADMK_share_adj":0.3266,"TVK_share_adj":0.1726,"Others_share_adj":0.0208,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9929,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiruvarur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":257892,"New_Voters":0,"Elector_Growth":0.9014,"DMK_Alliance_Share":0.5229,"AIADMK_Alliance_Share":0.2772,"NTK_share":0.1263,"DMK_share_adj":0.5565,"AIADMK_share_adj":0.2334,"TVK_share_adj":0.1677,"Others_share_adj":0.0424,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiruverumbur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":256239,"New_Voters":0,"Elector_Growth":0.9469,"DMK_Alliance_Share":0.5351,"AIADMK_Alliance_Share":0.2945,"NTK_share":0.0798,"DMK_share_adj":0.5255,"AIADMK_share_adj":0.208,"TVK_share_adj":0.2241,"Others_share_adj":0.0424,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiruvidaimarudur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":254453,"New_Voters":0,"Elector_Growth":0.9335,"DMK_Alliance_Share":0.4826,"AIADMK_Alliance_Share":0.4287,"NTK_share":0.0563,"DMK_share_adj":0.4489,"AIADMK_share_adj":0.3482,"TVK_share_adj":0.1824,"Others_share_adj":0.0205,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9404,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiruvottiyur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":240586,"New_Voters":0,"Elector_Growth":0.8757,"DMK_Alliance_Share":0.4409,"AIADMK_Alliance_Share":0.2526,"NTK_share":0.243,"DMK_share_adj":0.5053,"AIADMK_share_adj":0.1902,"TVK_share_adj":0.2783,"Others_share_adj":0.0261,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Thiyagarayanagar","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":154943,"New_Voters":0,"Elector_Growth":0.8167,"DMK_Alliance_Share":0.4057,"AIADMK_Alliance_Share":0.4047,"NTK_share":0.06,"DMK_share_adj":0.4036,"AIADMK_share_adj":0.3746,"TVK_share_adj":0.112,"Others_share_adj":0.1099,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.699,"Seat_Risk":"DMK Safe"},{"Constituency":"Thondamuthur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":287442,"New_Voters":0,"Elector_Growth":0.9077,"DMK_Alliance_Share":0.3583,"AIADMK_Alliance_Share":0.5389,"NTK_share":0.0349,"DMK_share_adj":0.3369,"AIADMK_share_adj":0.4896,"TVK_share_adj":0.1375,"Others_share_adj":0.0361,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0007,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Thoothukkudi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":248300,"New_Voters":0,"Elector_Growth":0.9594,"DMK_Alliance_Share":0.49,"AIADMK_Alliance_Share":0.2444,"NTK_share":0.1642,"DMK_share_adj":0.5557,"AIADMK_share_adj":0.2313,"TVK_share_adj":0.1223,"Others_share_adj":0.0908,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Thousand Lights","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":153908,"New_Voters":0,"Elector_Growth":0.8242,"DMK_Alliance_Share":0.5287,"AIADMK_Alliance_Share":0.2899,"NTK_share":0.0654,"DMK_share_adj":0.522,"AIADMK_share_adj":0.2228,"TVK_share_adj":0.1747,"Others_share_adj":0.0805,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Thuraiyur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":209011,"New_Voters":0,"Elector_Growth":0.8652,"DMK_Alliance_Share":0.4991,"AIADMK_Alliance_Share":0.3736,"NTK_share":0.0748,"DMK_share_adj":0.476,"AIADMK_share_adj":0.2896,"TVK_share_adj":0.2132,"Others_share_adj":0.0212,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9976,"Seat_Risk":"DMK Safe"},{"Constituency":"Tindivanam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":217609,"New_Voters":0,"Elector_Growth":0.8679,"DMK_Alliance_Share":0.424,"AIADMK_Alliance_Share":0.4922,"NTK_share":0.0504,"DMK_share_adj":0.404,"AIADMK_share_adj":0.4408,"TVK_share_adj":0.1345,"Others_share_adj":0.0206,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.1211,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Tiruchendur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":230702,"New_Voters":0,"Elector_Growth":0.9623,"DMK_Alliance_Share":0.5058,"AIADMK_Alliance_Share":0.361,"NTK_share":0.0863,"DMK_share_adj":0.5146,"AIADMK_share_adj":0.3217,"TVK_share_adj":0.1419,"Others_share_adj":0.0218,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9991,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruchengodu","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":206928,"New_Voters":0,"Elector_Growth":0.8157,"DMK_Alliance_Share":0.4423,"AIADMK_Alliance_Share":0.4269,"NTK_share":0.0756,"DMK_share_adj":0.4218,"AIADMK_share_adj":0.3548,"TVK_share_adj":0.2021,"Others_share_adj":0.0214,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8406,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruchirappalli (East)","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":217397,"New_Voters":0,"Elector_Growth":0.9156,"DMK_Alliance_Share":0.5456,"AIADMK_Alliance_Share":0.2343,"NTK_share":0.0828,"DMK_share_adj":0.5694,"AIADMK_share_adj":0.2047,"TVK_share_adj":0.1015,"Others_share_adj":0.1243,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruchirappalli (West)","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":235903,"New_Voters":0,"Elector_Growth":0.9379,"DMK_Alliance_Share":0.6452,"AIADMK_Alliance_Share":0.1804,"NTK_share":0.0859,"DMK_share_adj":0.6748,"AIADMK_share_adj":0.1353,"TVK_share_adj":0.1239,"Others_share_adj":0.0659,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruchuli","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":204293,"New_Voters":0,"Elector_Growth":0.8606,"DMK_Alliance_Share":0.5915,"AIADMK_Alliance_Share":0.2386,"NTK_share":0.0798,"DMK_share_adj":0.6008,"AIADMK_share_adj":0.1752,"TVK_share_adj":0.1683,"Others_share_adj":0.0558,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Tirukkoyilur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":241003,"New_Voters":0,"Elector_Growth":0.8942,"DMK_Alliance_Share":0.5656,"AIADMK_Alliance_Share":0.3328,"NTK_share":0.0592,"DMK_share_adj":0.558,"AIADMK_share_adj":0.2777,"TVK_share_adj":0.1433,"Others_share_adj":0.021,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9999,"Seat_Risk":"DMK Safe"},{"Constituency":"Tirunelveli","Winner_Party":"BJP","Winner_Alliance":"AIADMK_Alliance","Electors_2026":273520,"New_Voters":2109,"Elector_Growth":1.0078,"DMK_Alliance_Share":0.3501,"AIADMK_Alliance_Share":0.467,"NTK_share":0.097,"DMK_share_adj":0.3404,"AIADMK_share_adj":0.4199,"TVK_share_adj":0.1916,"Others_share_adj":0.0481,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0351,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Tirupattur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":224918,"New_Voters":0,"Elector_Growth":0.8807,"DMK_Alliance_Share":0.5191,"AIADMK_Alliance_Share":0.3672,"NTK_share":0.0652,"DMK_share_adj":0.516,"AIADMK_share_adj":0.3185,"TVK_share_adj":0.1442,"Others_share_adj":0.0213,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9989,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruppattur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":273456,"New_Voters":0,"Elector_Growth":0.9445,"DMK_Alliance_Share":0.4919,"AIADMK_Alliance_Share":0.3146,"NTK_share":0.0691,"DMK_share_adj":0.4784,"AIADMK_share_adj":0.2379,"TVK_share_adj":0.2002,"Others_share_adj":0.0835,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9993,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruppur (North)","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":310138,"New_Voters":0,"Elector_Growth":0.9483,"DMK_Alliance_Share":0.3078,"AIADMK_Alliance_Share":0.4906,"NTK_share":0.0971,"DMK_share_adj":0.271,"AIADMK_share_adj":0.4036,"TVK_share_adj":0.2794,"Others_share_adj":0.0459,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0018,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Tiruppur (South)","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":193614,"New_Voters":0,"Elector_Growth":0.8081,"DMK_Alliance_Share":0.4331,"AIADMK_Alliance_Share":0.4061,"NTK_share":0.0739,"DMK_share_adj":0.4336,"AIADMK_share_adj":0.3705,"TVK_share_adj":0.136,"Others_share_adj":0.0598,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.883,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruttani","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":260084,"New_Voters":0,"Elector_Growth":0.8139,"DMK_Alliance_Share":0.5172,"AIADMK_Alliance_Share":0.4083,"NTK_share":0.0516,"DMK_share_adj":0.473,"AIADMK_share_adj":0.3155,"TVK_share_adj":0.1914,"Others_share_adj":0.0201,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9897,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruvadanai","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":282121,"New_Voters":4903,"Elector_Growth":1.0177,"DMK_Alliance_Share":0.3933,"AIADMK_Alliance_Share":0.3246,"NTK_share":0.0818,"DMK_share_adj":0.402,"AIADMK_share_adj":0.2994,"TVK_share_adj":0.1074,"Others_share_adj":0.1913,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9554,"Seat_Risk":"DMK Safe"},{"Constituency":"Tiruvannamalai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":247309,"New_Voters":0,"Elector_Growth":0.8621,"DMK_Alliance_Share":0.6602,"AIADMK_Alliance_Share":0.2069,"NTK_share":0.067,"DMK_share_adj":0.6663,"AIADMK_share_adj":0.139,"TVK_share_adj":0.1654,"Others_share_adj":0.0293,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Tittakudi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":206770,"New_Voters":0,"Elector_Growth":0.895,"DMK_Alliance_Share":0.4978,"AIADMK_Alliance_Share":0.3942,"NTK_share":0.063,"DMK_share_adj":0.5054,"AIADMK_share_adj":0.369,"TVK_share_adj":0.1035,"Others_share_adj":0.0221,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9935,"Seat_Risk":"DMK Safe"},{"Constituency":"Udhagamandalam","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":187425,"New_Voters":0,"Elector_Growth":0.967,"DMK_Alliance_Share":0.4644,"AIADMK_Alliance_Share":0.4265,"NTK_share":0.0452,"DMK_share_adj":0.4682,"AIADMK_share_adj":0.4102,"TVK_share_adj":0.073,"Others_share_adj":0.0486,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9051,"Seat_Risk":"DMK Safe"},{"Constituency":"Udumalaipettai","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":228524,"New_Voters":0,"Elector_Growth":0.856,"DMK_Alliance_Share":0.3859,"AIADMK_Alliance_Share":0.4985,"NTK_share":0.0442,"DMK_share_adj":0.3751,"AIADMK_share_adj":0.4644,"TVK_share_adj":0.1143,"Others_share_adj":0.0461,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0163,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Ulundurpettai","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":297472,"New_Voters":0,"Elector_Growth":0.8844,"DMK_Alliance_Share":0.4715,"AIADMK_Alliance_Share":0.45,"NTK_share":0.0368,"DMK_share_adj":0.4343,"AIADMK_share_adj":0.3682,"TVK_share_adj":0.1772,"Others_share_adj":0.0203,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.665,"Seat_Risk":"DMK Safe"},{"Constituency":"Usilampatti","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":264141,"New_Voters":0,"Elector_Growth":0.9049,"DMK_Alliance_Share":0.3001,"AIADMK_Alliance_Share":0.3353,"NTK_share":0.0723,"DMK_share_adj":0.2686,"AIADMK_share_adj":0.2517,"TVK_share_adj":0.2194,"Others_share_adj":0.2602,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.1591,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Uthangarai","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":233500,"New_Voters":0,"Elector_Growth":0.9031,"DMK_Alliance_Share":0.3787,"AIADMK_Alliance_Share":0.5417,"NTK_share":0.0554,"DMK_share_adj":0.3683,"AIADMK_share_adj":0.5129,"TVK_share_adj":0.098,"Others_share_adj":0.0207,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0038,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Uthiramerur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":243922,"New_Voters":0,"Elector_Growth":0.8435,"DMK_Alliance_Share":0.4438,"AIADMK_Alliance_Share":0.4361,"NTK_share":0.0542,"DMK_share_adj":0.4281,"AIADMK_share_adj":0.3789,"TVK_share_adj":0.1643,"Others_share_adj":0.0287,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.6618,"Seat_Risk":"DMK Safe"},{"Constituency":"Valparai","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":172284,"New_Voters":0,"Elector_Growth":0.864,"DMK_Alliance_Share":0.4095,"AIADMK_Alliance_Share":0.5029,"NTK_share":0.0526,"DMK_share_adj":0.4055,"AIADMK_share_adj":0.4798,"TVK_share_adj":0.0937,"Others_share_adj":0.0209,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0681,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Vandavasi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":211811,"New_Voters":0,"Elector_Growth":0.8291,"DMK_Alliance_Share":0.5488,"AIADMK_Alliance_Share":0.3555,"NTK_share":0.0499,"DMK_share_adj":0.5434,"AIADMK_share_adj":0.3092,"TVK_share_adj":0.1265,"Others_share_adj":0.021,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9997,"Seat_Risk":"DMK Safe"},{"Constituency":"Vaniyambadi","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":240220,"New_Voters":0,"Elector_Growth":0.9204,"DMK_Alliance_Share":0.4374,"AIADMK_Alliance_Share":0.4633,"NTK_share":0.0591,"DMK_share_adj":0.4021,"AIADMK_share_adj":0.3792,"TVK_share_adj":0.1981,"Others_share_adj":0.0206,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.4376,"Seat_Risk":"Marginal"},{"Constituency":"Vanur","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":207984,"New_Voters":0,"Elector_Growth":0.831,"DMK_Alliance_Share":0.3869,"AIADMK_Alliance_Share":0.5361,"NTK_share":0.0471,"DMK_share_adj":0.3553,"AIADMK_share_adj":0.4684,"TVK_share_adj":0.1559,"Others_share_adj":0.0204,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0056,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Vasudevanallur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":227369,"New_Voters":0,"Elector_Growth":0.9411,"DMK_Alliance_Share":0.3908,"AIADMK_Alliance_Share":0.3773,"NTK_share":0.0951,"DMK_share_adj":0.3774,"AIADMK_share_adj":0.308,"TVK_share_adj":0.2179,"Others_share_adj":0.0967,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8427,"Seat_Risk":"DMK Safe"},{"Constituency":"Vedaranyam","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":186034,"New_Voters":0,"Elector_Growth":0.8568,"DMK_Alliance_Share":0.42,"AIADMK_Alliance_Share":0.498,"NTK_share":0.0576,"DMK_share_adj":0.406,"AIADMK_share_adj":0.458,"TVK_share_adj":0.1153,"Others_share_adj":0.0207,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.1217,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Vedasandur","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":241813,"New_Voters":0,"Elector_Growth":0.8262,"DMK_Alliance_Share":0.4997,"AIADMK_Alliance_Share":0.4173,"NTK_share":0.0399,"DMK_share_adj":0.4838,"AIADMK_share_adj":0.3665,"TVK_share_adj":0.1291,"Others_share_adj":0.0207,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.967,"Seat_Risk":"DMK Safe"},{"Constituency":"Veerapandi","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":248478,"New_Voters":0,"Elector_Growth":0.8086,"DMK_Alliance_Share":0.4103,"AIADMK_Alliance_Share":0.4992,"NTK_share":0.0438,"DMK_share_adj":0.3862,"AIADMK_share_adj":0.4399,"TVK_share_adj":0.1532,"Others_share_adj":0.0207,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0349,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Velachery","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":211691,"New_Voters":0,"Elector_Growth":0.8721,"DMK_Alliance_Share":0.3876,"AIADMK_Alliance_Share":0.363,"NTK_share":0.0802,"DMK_share_adj":0.3824,"AIADMK_share_adj":0.3166,"TVK_share_adj":0.156,"Others_share_adj":0.145,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.8411,"Seat_Risk":"DMK Safe"},{"Constituency":"Vellore","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":211063,"New_Voters":0,"Elector_Growth":0.8541,"DMK_Alliance_Share":0.4686,"AIADMK_Alliance_Share":0.4176,"NTK_share":0.0474,"DMK_share_adj":0.4551,"AIADMK_share_adj":0.3646,"TVK_share_adj":0.1474,"Others_share_adj":0.0329,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9225,"Seat_Risk":"DMK Safe"},{"Constituency":"Veppanahalli","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":243875,"New_Voters":0,"Elector_Growth":0.8655,"DMK_Alliance_Share":0.4438,"AIADMK_Alliance_Share":0.4763,"NTK_share":0.0405,"DMK_share_adj":0.43,"AIADMK_share_adj":0.4349,"TVK_share_adj":0.1144,"Others_share_adj":0.0207,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.2691,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Vikravandi","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":227355,"New_Voters":0,"Elector_Growth":0.8549,"DMK_Alliance_Share":0.4841,"AIADMK_Alliance_Share":0.4347,"NTK_share":0.0424,"DMK_share_adj":0.4585,"AIADMK_share_adj":0.37,"TVK_share_adj":0.151,"Others_share_adj":0.0205,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9109,"Seat_Risk":"DMK Safe"},{"Constituency":"Vilathikulam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":203732,"New_Voters":0,"Elector_Growth":0.8872,"DMK_Alliance_Share":0.5405,"AIADMK_Alliance_Share":0.3099,"NTK_share":0.0708,"DMK_share_adj":0.5445,"AIADMK_share_adj":0.2593,"TVK_share_adj":0.1484,"Others_share_adj":0.0478,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Vilavancode","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":225219,"New_Voters":0,"Elector_Growth":0.9769,"DMK_Alliance_Share":0.5212,"AIADMK_Alliance_Share":0.3649,"NTK_share":0.0732,"DMK_share_adj":0.4762,"AIADMK_share_adj":0.2518,"TVK_share_adj":0.2514,"Others_share_adj":0.0207,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9993,"Seat_Risk":"DMK Safe"},{"Constituency":"Villivakkam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":159764,"New_Voters":0,"Elector_Growth":0.8072,"DMK_Alliance_Share":0.5283,"AIADMK_Alliance_Share":0.2775,"NTK_share":0.0757,"DMK_share_adj":0.524,"AIADMK_share_adj":0.205,"TVK_share_adj":0.1905,"Others_share_adj":0.0805,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":1.0,"Seat_Risk":"DMK Safe"},{"Constituency":"Villupuram","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":244080,"New_Voters":0,"Elector_Growth":0.8674,"DMK_Alliance_Share":0.4992,"AIADMK_Alliance_Share":0.4266,"NTK_share":0.0311,"DMK_share_adj":0.4808,"AIADMK_share_adj":0.3756,"TVK_share_adj":0.1231,"Others_share_adj":0.0205,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9473,"Seat_Risk":"DMK Safe"},{"Constituency":"Viralimalai","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":223084,"New_Voters":0,"Elector_Growth":0.8396,"DMK_Alliance_Share":0.4063,"AIADMK_Alliance_Share":0.5283,"NTK_share":0.0364,"DMK_share_adj":0.3789,"AIADMK_share_adj":0.4697,"TVK_share_adj":0.1312,"Others_share_adj":0.0203,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0118,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Virudhunagar","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":198616,"New_Voters":0,"Elector_Growth":0.8941,"DMK_Alliance_Share":0.4532,"AIADMK_Alliance_Share":0.3213,"NTK_share":0.0885,"DMK_share_adj":0.4789,"AIADMK_share_adj":0.3157,"TVK_share_adj":0.0735,"Others_share_adj":0.1319,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9981,"Seat_Risk":"DMK Safe"},{"Constituency":"Virugampakkam","Winner_Party":"DMK","Winner_Alliance":"DMK_Alliance","Electors_2026":196536,"New_Voters":0,"Elector_Growth":0.8462,"DMK_Alliance_Share":0.4397,"AIADMK_Alliance_Share":0.3405,"NTK_share":0.0602,"DMK_share_adj":0.4411,"AIADMK_share_adj":0.3088,"TVK_share_adj":0.107,"Others_share_adj":0.143,"Winner_adj":"DMK_Alliance","LR_DMK_WinProb":0.9864,"Seat_Risk":"DMK Safe"},{"Constituency":"Vriddhachalam","Winner_Party":"INC","Winner_Alliance":"DMK_Alliance","Electors_2026":237836,"New_Voters":0,"Elector_Growth":0.8801,"DMK_Alliance_Share":0.3917,"AIADMK_Alliance_Share":0.519,"NTK_share":0.0439,"DMK_share_adj":0.3613,"AIADMK_share_adj":0.4504,"TVK_share_adj":0.1677,"Others_share_adj":0.0206,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0101,"Seat_Risk":"AIADMK Safe"},{"Constituency":"Yercaud","Winner_Party":"AIADMK","Winner_Alliance":"AIADMK_Alliance","Electors_2026":270529,"New_Voters":0,"Elector_Growth":0.8243,"DMK_Alliance_Share":0.4002,"AIADMK_Alliance_Share":0.5213,"NTK_share":0.0557,"DMK_share_adj":0.3467,"AIADMK_share_adj":0.4132,"TVK_share_adj":0.22,"Others_share_adj":0.0201,"Winner_adj":"AIADMK_Alliance","LR_DMK_WinProb":0.0126,"Seat_Risk":"AIADMK Safe"}];
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────────
+Chart.defaults.color = '#6B7280';
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+Chart.defaults.font.size = 12;
+
+const DMK_COLOR  = '#E8293C';
+const AIA_COLOR  = '#1A8A4C';
+const TVK_COLOR  = '#F59E0B';
+const OTH_COLOR  = '#8B5CF6';
+
+// ── 1. PARTY CHART ────────────────────────────────────────────────────────────
+const partyCounts = {};
+DATA.forEach(d => { partyCounts[d.Winner_Party] = (partyCounts[d.Winner_Party]||0)+1; });
+const partySorted = Object.entries(partyCounts).sort((a,b)=>b[1]-a[1]);
+const partyColors = { DMK:'#E8293C', AIADMK:'#1A8A4C', INC:'#0066CC', PMK:'#FF6B35', VCK:'#7C3AED', BJP:'#FF8C00', 'CPI-M':'#B91C1C', CPI:'#DC2626' };
+
+new Chart(document.getElementById('partyChart'), {
+  type: 'bar',
+  data: {
+    labels: partySorted.map(([p])=>p),
+    datasets: [{
+      data: partySorted.map(([,c])=>c),
+      backgroundColor: partySorted.map(([p])=>partyColors[p]||'#4F8EF7'),
+      borderRadius: 5, borderSkipped: false,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} seats` } }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9CA3AF' } },
+      y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#9CA3AF', stepSize: 20 }, beginAtZero: true }
+    }
+  }
+});
+
+// ── 2. RISK DONUT ─────────────────────────────────────────────────────────────
+new Chart(document.getElementById('riskChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['DMK Safe (159)', 'AIADMK Safe (67)', 'Marginal (8)'],
+    datasets: [{
+      data: [159, 67, 8],
+      backgroundColor: ['#E8293C','#1A8A4C','#F97316'],
+      borderColor: '#111318', borderWidth: 3, hoverOffset: 8
+    }]
+  },
+  options: {
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, color: '#9CA3AF', boxWidth: 12, boxHeight: 12 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}` } }
+    }
+  }
+});
+
+// ── 3. WIN PROB HISTOGRAM ─────────────────────────────────────────────────────
+const bins = new Array(10).fill(0);
+DATA.forEach(d => {
+  const b = Math.min(9, Math.floor(d.LR_DMK_WinProb * 10));
+  bins[b]++;
+});
+const binLabels = ['0–10%','10–20%','20–30%','30–40%','40–50%','50–60%','60–70%','70–80%','80–90%','90–100%'];
+const binColors = bins.map((_, i) => i < 4 ? AIA_COLOR : i < 6 ? '#F97316' : DMK_COLOR);
+
+new Chart(document.getElementById('probChart'), {
+  type: 'bar',
+  data: {
+    labels: binLabels,
+    datasets: [{
+      label: 'Constituencies',
+      data: bins,
+      backgroundColor: binColors,
+      borderRadius: 4, borderSkipped: false
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} constituencies` } }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9CA3AF', maxRotation: 45 } },
+      y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#9CA3AF' }, beginAtZero: true }
+    }
+  }
+});
+
+// ── 4. AVG VOTE SHARE ────────────────────────────────────────────────────────
+const avgShare = (key) => DATA.reduce((s,d) => s+d[key], 0) / DATA.length;
+new Chart(document.getElementById('shareChart'), {
+  type: 'bar',
+  data: {
+    labels: ['DMK Alliance', 'AIADMK Alliance', 'TVK', 'Others'],
+    datasets: [{
+      data: [
+        (avgShare('DMK_share_adj')*100).toFixed(1),
+        (avgShare('AIADMK_share_adj')*100).toFixed(1),
+        (avgShare('TVK_share_adj')*100).toFixed(1),
+        (avgShare('Others_share_adj')*100).toFixed(1),
+      ],
+      backgroundColor: [DMK_COLOR, AIA_COLOR, TVK_COLOR, OTH_COLOR],
+      borderRadius: 6, borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x}% avg vote share` } }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#9CA3AF', callback: v => v+'%' }, beginAtZero: true },
+      y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9CA3AF' } }
+    }
+  }
+});
+
+// ── 5. SCATTER: ELECTOR GROWTH VS WIN PROB ────────────────────────────────────
+const scatterData = DATA.map(d => ({ x: (d.Elector_Growth*100).toFixed(1), y: (d.LR_DMK_WinProb*100).toFixed(1), label: d.Constituency }));
+new Chart(document.getElementById('scatterChart'), {
+  type: 'scatter',
+  data: {
+    datasets: [{
+      label: 'Constituency',
+      data: scatterData,
+      backgroundColor: scatterData.map(d => d.y > 50 ? 'rgba(232,41,60,0.5)' : 'rgba(26,138,76,0.5)'),
+      pointRadius: 5, pointHoverRadius: 7
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const d = scatterData[ctx.dataIndex];
+            return [` ${d.label}`, ` Growth: ${d.x}%`, ` DMK Win Prob: ${d.y}%`];
+          }
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'Elector Growth (%)', color: '#6B7280' }, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9CA3AF', callback: v => v+'%' } },
+      y: { title: { display: true, text: 'DMK Win Probability (%)', color: '#6B7280' }, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#9CA3AF', callback: v => v+'%' }, min: 0, max: 105 }
+    }
+  }
+});
+
+// ── 6. TVK IMPACT ON MARGINALS ────────────────────────────────────────────────
+const marginalData = DATA.filter(d => ['Marginal','AIADMK Safe','DMK Safe'].includes(d.Seat_Risk) && d.TVK_share_adj > 0.1 && d.LR_DMK_WinProb > 0.3 && d.LR_DMK_WinProb < 0.75).slice(0,30);
+new Chart(document.getElementById('tvkChart'), {
+  type: 'scatter',
+  data: {
+    datasets: [{
+      label: 'Constituency',
+      data: marginalData.map(d => ({ x: (d.TVK_share_adj*100).toFixed(1), y: (d.LR_DMK_WinProb*100).toFixed(1), label: d.Constituency })),
+      backgroundColor: marginalData.map(d => d.Seat_Risk === 'Marginal' ? '#F97316' : d.Winner_adj === 'DMK_Alliance' ? 'rgba(232,41,60,0.6)' : 'rgba(26,138,76,0.6)'),
+      pointRadius: 6, pointHoverRadius: 9
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const d = marginalData[ctx.dataIndex];
+            return [` ${d.Constituency}`, ` TVK: ${(d.TVK_share_adj*100).toFixed(1)}%`, ` DMK Prob: ${(d.LR_DMK_WinProb*100).toFixed(0)}%`];
+          }
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'TVK Vote Share (%)', color: '#6B7280' }, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9CA3AF', callback: v => v+'%' } },
+      y: { title: { display: true, text: 'DMK Win Probability (%)', color: '#6B7280' }, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#9CA3AF', callback: v => v+'%' } }
+    }
+  }
+});
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+let filtered = [...DATA];
+let sortCol = 'Constituency', sortDir = 1;
+let page = 1;
+const PAGE_SIZE = 15;
+
+function probColor(p) {
+  if (p > 0.7) return DMK_COLOR;
+  if (p < 0.3) return AIA_COLOR;
+  return '#F97316';
+}
+function allianceBadge(a) {
+  if (a === 'DMK_Alliance') return '<span class="badge badge-dmk">DMK Alliance</span>';
+  if (a === 'AIADMK_Alliance') return '<span class="badge badge-aiadmk">AIADMK Alliance</span>';
+  return '<span class="badge badge-others">Others</span>';
+}
+function riskBadge(r) {
+  if (r === 'DMK Safe') return '<span class="badge badge-safe-dmk">DMK Safe</span>';
+  if (r === 'AIADMK Safe') return '<span class="badge badge-safe-aiadmk">AIADMK Safe</span>';
+  return '<span class="badge badge-marginal">⚡ Marginal</span>';
+}
+
+function applyFilters() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const fA = document.getElementById('filterAlliance').value;
+  const fR = document.getElementById('filterRisk').value;
+  const fP = document.getElementById('filterParty').value;
+  filtered = DATA.filter(d => {
+    if (q && !d.Constituency.toLowerCase().includes(q) && !d.Winner_Party.toLowerCase().includes(q)) return false;
+    if (fA && d.Winner_adj !== fA) return false;
+    if (fR && d.Seat_Risk !== fR) return false;
+    if (fP && d.Winner_Party !== fP) return false;
+    return true;
+  });
+  filtered.sort((a,b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'string') va = va.toLowerCase(), vb = vb.toLowerCase();
+    return va < vb ? -sortDir : va > vb ? sortDir : 0;
+  });
+  page = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const start = (page-1)*PAGE_SIZE, end = start+PAGE_SIZE;
+  const rows = filtered.slice(start, end);
+  document.getElementById('tableBody').innerHTML = rows.map(d => `
+    <tr>
+      <td><strong>${d.Constituency}</strong></td>
+      <td><span style="color:${partyColors[d.Winner_Party]||'#aaa'};font-weight:600">${d.Winner_Party}</span></td>
+      <td>${allianceBadge(d.Winner_adj)}</td>
+      <td>${riskBadge(d.Seat_Risk)}</td>
+      <td>
+        <div class="prob-bar-wrap">
+          <div class="prob-bar-track"><div class="prob-bar-fill" style="width:${d.LR_DMK_WinProb*100}%;background:${probColor(d.LR_DMK_WinProb)}"></div></div>
+          <span class="prob-val">${(d.LR_DMK_WinProb*100).toFixed(0)}%</span>
+        </div>
+      </td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${DMK_COLOR}">${(d.DMK_share_adj*100).toFixed(1)}%</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${AIA_COLOR}">${(d.AIADMK_share_adj*100).toFixed(1)}%</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${TVK_COLOR}">${(d.TVK_share_adj*100).toFixed(1)}%</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6B7280">${d.Electors_2026.toLocaleString()}</td>
+    </tr>`).join('');
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  document.getElementById('tableInfo').textContent = `Showing ${start+1}–${Math.min(end, filtered.length)} of ${filtered.length} constituencies`;
+  const btns = document.getElementById('pageBtns');
+  btns.innerHTML = `<button class="page-btn" onclick="changePage(-1)" ${page===1?'disabled':''}>← Prev</button>`;
+  const range = 3;
+  for (let i = Math.max(1,page-range); i <= Math.min(totalPages, page+range); i++) {
+    btns.innerHTML += `<button class="page-btn ${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  btns.innerHTML += `<button class="page-btn" onclick="changePage(1)" ${page===totalPages||totalPages===0?'disabled':''}>Next →</button>`;
+}
+
+function changePage(d) { page = Math.max(1, Math.min(Math.ceil(filtered.length/PAGE_SIZE), page+d)); renderTable(); }
+function goPage(p) { page = p; renderTable(); }
+
+// Sort
+document.querySelectorAll('.data-table thead th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.getAttribute('data-col');
+    if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+    document.querySelectorAll('.data-table thead th').forEach(t => t.classList.remove('sorted'));
+    th.classList.add('sorted');
+    applyFilters();
+  });
+});
+['searchBox','filterAlliance','filterRisk','filterParty'].forEach(id =>
+  document.getElementById(id).addEventListener('input', applyFilters));
+
+applyFilters();
+</script>
+</body>
+</html>
